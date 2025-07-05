@@ -1,5 +1,4 @@
-
-import { AlertTriangle, CheckCircle, XCircle, Pills } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, Pill } from 'lucide-react';
 
 interface MedicationResultProps {
   result: {
@@ -27,7 +26,7 @@ const MedicationResult = ({ result, onNewScan }: MedicationResultProps) => {
       case 'low': return <CheckCircle className="w-6 h-6" />;
       case 'medium': return <AlertTriangle className="w-6 h-6" />;
       case 'high': return <XCircle className="w-6 h-6" />;
-      default: return <Pills className="w-6 h-6" />;
+      default: return <Pill className="w-6 h-6" />;
     }
   };
 
@@ -37,7 +36,7 @@ const MedicationResult = ({ result, onNewScan }: MedicationResultProps) => {
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <div className="flex items-start space-x-4">
           <div className="bg-blue-100 p-3 rounded-xl">
-            <Pills className="w-8 h-8 text-blue-600" />
+            <Pill className="w-8 h-8 text-blue-600" />
           </div>
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-gray-900 mb-1">{result.name}</h2>
