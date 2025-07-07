@@ -1,7 +1,13 @@
 
 import { Pill, User, Settings } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import ProfileSheet from './ProfileSheet';
 
 const Header = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   return (
     <header className="bg-white shadow-sm border-b border-gray-100">
       <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -15,9 +21,20 @@ const Header = () => {
           </div>
         </div>
         <div className="flex items-center space-x-4">
-          <button className="p-2 rounded-lg hover:bg-gray-50 transition-colors">
-            <User className="w-5 h-5 text-gray-600" />
-          </button>
+          {user ? (
+            <ProfileSheet>
+              <button className="p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <User className="w-5 h-5 text-gray-600" />
+              </button>
+            </ProfileSheet>
+          ) : (
+            <button 
+              onClick={() => navigate('/auth')}
+              className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <User className="w-5 h-5 text-gray-600" />
+            </button>
+          )}
           <button className="p-2 rounded-lg hover:bg-gray-50 transition-colors">
             <Settings className="w-5 h-5 text-gray-600" />
           </button>
