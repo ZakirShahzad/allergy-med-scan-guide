@@ -16,7 +16,7 @@ const Header = () => {
             <Pill className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">MedSafe</h1>
+            <h1 className="text-xl font-bold text-gray-900">Flikt</h1>
             <p className="text-sm text-gray-500">Your medication guardian</p>
           </div>
         </div>

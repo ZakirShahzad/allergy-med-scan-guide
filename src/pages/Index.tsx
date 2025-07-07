@@ -47,7 +47,7 @@ const Index = () => {
           <div className="bg-blue-600 p-3 rounded-xl inline-block mb-4">
             <Pill className="w-8 h-8 text-white" />
           </div>
-          <div className="text-lg font-semibold text-gray-700">Loading MedSafe...</div>
+          <div className="text-lg font-semibold text-gray-700">Loading Flikt...</div>
         </div>
       </div>
     );

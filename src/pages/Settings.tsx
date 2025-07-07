@@ -67,7 +67,7 @@ const Settings = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `medsafe-data-export-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `flikt-data-export-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -105,14 +105,14 @@ const Settings = () => {
             className="gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to MedSafe
+            Back to Flikt
           </Button>
         </div>
 
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-            <p className="text-gray-600 mt-2">Manage your MedSafe preferences and account settings</p>
+            <p className="text-gray-600 mt-2">Manage your Flikt preferences and account settings</p>
           </div>
 
           {/* Notifications */}
@@ -225,7 +225,7 @@ const Settings = () => {
                 <div className="space-y-0.5">
                   <Label>Export Your Data</Label>
                   <div className="text-sm text-gray-500">
-                    Download all your MedSafe data in JSON format
+                    Download all your Flikt data in JSON format
                   </div>
                 </div>
                 <Button 

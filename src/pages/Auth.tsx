@@ -59,7 +59,7 @@ const Auth = () => {
               <Pill className="w-8 h-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Welcome to MedSafe</CardTitle>
+          <CardTitle className="text-2xl font-bold">Welcome to Flikt</CardTitle>
           <CardDescription>
             Your medication guardian - sign in to continue
           </CardDescription>
