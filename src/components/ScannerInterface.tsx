@@ -1,17 +1,26 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Camera, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) => void }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
 
   const analyzeImage = async (file: File) => {
     setIsAnalyzing(true);
+    
+    toast({
+      title: "Starting Analysis",
+      description: "Analyzing your medication image...",
+    });
     
     // Show the uploaded image immediately
     const reader = new FileReader();
@@ -43,40 +52,63 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
         
         console.log('Analysis result:', data);
         
-        onScanComplete({
-          ...data,
-          barcode: "AI-ANALYZED",
-          uploadedImage: imageData
+        // Navigate to results page with analysis data
+        navigate('/analysis-results', {
+          state: {
+            analysisData: {
+              ...data,
+              uploadedImage: imageData
+            }
+          }
+        });
+        
+        toast({
+          title: "Analysis Complete",
+          description: "Your medication has been analyzed successfully!",
         });
       };
       imageReader.readAsDataURL(file);
     } catch (error) {
       console.error('Analysis failed:', error);
-      // Fallback to mock data if analysis fails
-      const mockResult = {
-        name: "Analysis Failed - Please Try Again",
-        barcode: "000000000000",
-        ingredients: ["Unable to analyze - " + (error as Error).message],
-        warnings: ["Please try again or consult healthcare professional"],
-        allergenRisk: "medium" as const,
-        uploadedImage: uploadedImage
-      };
-      onScanComplete(mockResult);
+      
+      toast({
+        variant: "destructive",
+        title: "Analysis Failed",
+        description: "Unable to analyze the image. Please try again.",
+      });
+      
+      // Navigate to results page with error data
+      navigate('/analysis-results', {
+        state: {
+          analysisData: {
+            name: "Analysis Failed - Please Try Again",
+            ingredients: ["Unable to analyze - " + (error as Error).message],
+            warnings: ["Please try again or consult healthcare professional"],
+            allergenRisk: "medium" as const,
+            recommendations: ["Try uploading a clearer image", "Ensure the medication label is visible"],
+            uploadedImage: uploadedImage
+          }
+        }
+      });
     } finally {
       setIsAnalyzing(false);
     }
   };
 
   const handleMockScan = () => {
-    // Demo with sample data
-    const mockResult = {
-      name: "Ibuprofen 200mg (Demo)",
-      barcode: "123456789012",
-      ingredients: ["Ibuprofen", "Microcrystalline cellulose", "Lactose", "Sodium starch glycolate"],
-      warnings: ["Contains lactose", "May cause drowsiness"],
-      allergenRisk: "medium" as const
-    };
-    onScanComplete(mockResult);
+    // Navigate to results page with demo data
+    navigate('/analysis-results', {
+      state: {
+        analysisData: {
+          name: "Ibuprofen 200mg (Demo)",
+          ingredients: ["Ibuprofen", "Microcrystalline cellulose", "Lactose", "Sodium starch glycolate"],
+          warnings: ["Contains lactose", "May cause drowsiness"],
+          allergenRisk: "medium" as const,
+          recommendations: ["Take with food to reduce stomach irritation", "Avoid if allergic to NSAIDs"],
+          rawAnalysis: "This is a demo analysis showing how the AI would analyze your medication and cross-reference it with your allergy profile."
+        }
+      }
+    });
   };
 
   return (

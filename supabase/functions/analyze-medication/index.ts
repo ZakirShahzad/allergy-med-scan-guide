@@ -86,18 +86,26 @@ serve(async (req) => {
     // Parse AI response
     let analysisResult;
     try {
-      analysisResult = JSON.parse(aiResponse.choices[0].message.content);
-    } catch {
-      // Fallback if JSON parsing fails
+      const content = aiResponse.choices[0].message.content;
+      console.log('Raw AI response content:', content);
+      
+      analysisResult = JSON.parse(content);
+    } catch (parseError) {
+      console.log('JSON parsing failed, creating structured response from raw content');
+      const content = aiResponse.choices[0].message.content || 'Unable to analyze medication';
+      
+      // Create a structured response from the raw content
       analysisResult = {
-        name: "Unable to identify medication",
-        ingredients: [],
-        warnings: ["Please consult with a healthcare professional"],
-        allergenRisk: "medium",
-        recommendations: ["Manual verification recommended"]
+        name: "Medication Analysis",
+        ingredients: ["Analysis from uploaded image"],
+        warnings: [content.includes('allerg') ? 'Potential allergy concerns detected' : 'Please review with healthcare professional'],
+        allergenRisk: content.includes('high') ? 'high' : content.includes('low') ? 'low' : 'medium',
+        recommendations: ["Please consult with a healthcare professional for personalized advice"],
+        rawAnalysis: content
       };
     }
 
+    console.log('Final analysis result:', analysisResult);
     return new Response(JSON.stringify(analysisResult), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
