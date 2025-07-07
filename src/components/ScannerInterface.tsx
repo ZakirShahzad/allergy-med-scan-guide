@@ -15,6 +15,15 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
 
   const analyzeImage = async (file: File) => {
+    if (!user?.id) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please log in to analyze medications.",
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     
     toast({
@@ -35,19 +44,28 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
       imageReader.onload = async (e) => {
         const imageData = e.target?.result as string;
         
+        if (!imageData || !imageData.startsWith('data:image/')) {
+          throw new Error('Invalid image format');
+        }
+        
         console.log('Calling analyze-medication function...');
         
         // Call Supabase edge function
         const { data, error } = await supabase.functions.invoke('analyze-medication', {
           body: { 
             imageData,
-            userId: user?.id 
+            userId: user.id 
           }
         });
 
         if (error) {
           console.error('Edge function error:', error);
-          throw error;
+          throw new Error(`Analysis service error: ${error.message}`);
+        }
+        
+        if (!data || data.error) {
+          console.error('Analysis returned error:', data);
+          throw new Error(data?.details || 'Analysis failed');
         }
         
         console.log('Analysis result:', data);
@@ -64,32 +82,25 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
         
         toast({
           title: "Analysis Complete",
-          description: "Your medication has been analyzed successfully!",
+          description: data.hasUserProfile 
+            ? "Your medication has been analyzed against your profile!"
+            : "Analysis complete! Complete your profile for personalized results.",
         });
       };
       imageReader.readAsDataURL(file);
     } catch (error) {
       console.error('Analysis failed:', error);
       
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
       toast({
         variant: "destructive",
         title: "Analysis Failed",
-        description: "Unable to analyze the image. Please try again.",
+        description: errorMessage,
       });
       
-      // Navigate to results page with error data
-      navigate('/analysis-results', {
-        state: {
-          analysisData: {
-            name: "Analysis Failed - Please Try Again",
-            ingredients: ["Unable to analyze - " + (error as Error).message],
-            warnings: ["Please try again or consult healthcare professional"],
-            allergenRisk: "medium" as const,
-            recommendations: ["Try uploading a clearer image", "Ensure the medication label is visible"],
-            uploadedImage: uploadedImage
-          }
-        }
-      });
+      // Don't navigate on error - let user try again
+      setUploadedImage(null);
     } finally {
       setIsAnalyzing(false);
     }
