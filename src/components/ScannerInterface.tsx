@@ -24,6 +24,28 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
       return;
     }
 
+    // Validate image format and size
+    const validFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validFormats.includes(file.type)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Image Format",
+        description: "Please upload a JPG, PNG, or WebP image.",
+      });
+      return;
+    }
+
+    // Check file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast({
+        variant: "destructive",
+        title: "Image Too Large",
+        description: "Please upload an image smaller than 10MB.",
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     
     toast({
@@ -60,15 +82,34 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
 
         if (error) {
           console.error('Edge function error:', error);
-          throw new Error(`Analysis service error: ${error.message}`);
+          let errorMessage = 'Analysis service error';
+          
+          // Handle specific error types
+          if (error.message?.includes('non-2xx status code')) {
+            errorMessage = 'The analysis service is currently unavailable. Please try again later.';
+          } else if (error.message?.includes('timeout')) {
+            errorMessage = 'Analysis timed out. Please try with a smaller image.';
+          } else if (error.message?.includes('network')) {
+            errorMessage = 'Network error. Please check your connection and try again.';
+          } else {
+            errorMessage = error.message || 'Unknown analysis error';
+          }
+          
+          throw new Error(errorMessage);
         }
         
         if (!data || data.error) {
           console.error('Analysis returned error:', data);
-          throw new Error(data?.details || 'Analysis failed');
+          const errorDetails = data?.details || data?.error || 'Analysis failed';
+          throw new Error(errorDetails);
         }
         
         console.log('Analysis result:', data);
+        
+        // Validate required fields in response
+        if (!data.name || !data.ingredients || !Array.isArray(data.ingredients)) {
+          throw new Error('Invalid analysis response: missing required fields');
+        }
         
         // Navigate to results page with analysis data
         navigate('/analysis-results', {
@@ -93,10 +134,28 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
       
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       
+      // Provide specific guidance based on error type
+      let description = errorMessage;
+      let title = "Analysis Failed";
+      
+      if (errorMessage.includes('Invalid image format')) {
+        title = "Invalid Image";
+        description = "Please upload a clear photo of your medication label or packaging.";
+      } else if (errorMessage.includes('unavailable')) {
+        title = "Service Unavailable";
+        description = "The analysis service is temporarily down. Please try again in a few minutes.";
+      } else if (errorMessage.includes('timeout')) {
+        title = "Analysis Timeout";
+        description = "Analysis took too long. Try uploading a smaller, clearer image.";
+      } else if (errorMessage.includes('missing required fields')) {
+        title = "Analysis Incomplete";
+        description = "The image could not be properly analyzed. Please try a clearer photo.";
+      }
+      
       toast({
         variant: "destructive",
-        title: "Analysis Failed",
-        description: errorMessage,
+        title,
+        description,
       });
       
       // Don't navigate on error - let user try again
