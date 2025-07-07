@@ -7,6 +7,7 @@ interface MedicationResultProps {
     ingredients: string[];
     warnings: string[];
     allergenRisk: 'low' | 'medium' | 'high';
+    uploadedImage?: string;
   };
   onNewScan: () => void;
 }
@@ -32,6 +33,20 @@ const MedicationResult = ({ result, onNewScan }: MedicationResultProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Uploaded Image */}
+      {result.uploadedImage && (
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Uploaded Image</h3>
+          <div className="flex justify-center">
+            <img 
+              src={result.uploadedImage} 
+              alt="Analyzed medication" 
+              className="max-w-md w-full h-64 object-cover rounded-xl border-2 border-gray-200"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <div className="flex items-start space-x-4">

@@ -15,8 +15,15 @@ serve(async (req) => {
   try {
     const { imageData, userId } = await req.json();
     
+    console.log('Analyzing medication for user:', userId);
+    
+    if (!imageData) {
+      throw new Error('No image data provided');
+    }
+
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
+      console.error('OpenAI API key not found in environment');
       throw new Error('OpenAI API key not configured');
     }
 
@@ -31,7 +38,7 @@ serve(async (req) => {
       .from('profiles')
       .select('allergies, medical_conditions')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     const allergies = profile?.allergies || [];
     const medicalConditions = profile?.medical_conditions || [];

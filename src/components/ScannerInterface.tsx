@@ -8,14 +8,25 @@ import { supabase } from '@/integrations/supabase/client';
 const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) => void }) => {
   const { user } = useAuth();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
 
   const analyzeImage = async (file: File) => {
     setIsAnalyzing(true);
+    
+    // Show the uploaded image immediately
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setUploadedImage(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    
     try {
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.onload = async (e) => {
+      // Convert file to base64 for API
+      const imageReader = new FileReader();
+      imageReader.onload = async (e) => {
         const imageData = e.target?.result as string;
+        
+        console.log('Calling analyze-medication function...');
         
         // Call Supabase edge function
         const { data, error } = await supabase.functions.invoke('analyze-medication', {
@@ -25,23 +36,30 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
           }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Edge function error:', error);
+          throw error;
+        }
+        
+        console.log('Analysis result:', data);
         
         onScanComplete({
           ...data,
-          barcode: "AI-ANALYZED"
+          barcode: "AI-ANALYZED",
+          uploadedImage: imageData
         });
       };
-      reader.readAsDataURL(file);
+      imageReader.readAsDataURL(file);
     } catch (error) {
       console.error('Analysis failed:', error);
       // Fallback to mock data if analysis fails
       const mockResult = {
-        name: "Analysis Failed - Sample Data",
+        name: "Analysis Failed - Please Try Again",
         barcode: "000000000000",
-        ingredients: ["Unable to analyze"],
+        ingredients: ["Unable to analyze - " + (error as Error).message],
         warnings: ["Please try again or consult healthcare professional"],
-        allergenRisk: "medium" as const
+        allergenRisk: "medium" as const,
+        uploadedImage: uploadedImage
       };
       onScanComplete(mockResult);
     } finally {
@@ -63,6 +81,24 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+      {uploadedImage && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Uploaded Image</h3>
+          <div className="relative max-w-md mx-auto">
+            <img 
+              src={uploadedImage} 
+              alt="Uploaded medication" 
+              className="w-full h-64 object-cover rounded-xl border-2 border-gray-200"
+            />
+            {isAnalyzing && (
+              <div className="absolute inset-0 bg-black bg-opacity-50 rounded-xl flex items-center justify-center">
+                <div className="text-white text-lg font-semibold">Analyzing...</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
       <div className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-2xl p-12 mb-6">
         <div className="bg-blue-600 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
           <Camera className="w-10 h-10 text-white" />
@@ -91,11 +127,12 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
           
           <Button 
             variant="outline" 
+            disabled={isAnalyzing}
             className="w-full py-4 text-lg font-semibold rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
             onClick={() => document.getElementById('file-upload')?.click()}
           >
             <Upload className="w-5 h-5 mr-2" />
-            Upload Image
+            {isAnalyzing ? 'Analyzing...' : 'Upload Image'}
           </Button>
           <input 
             id="file-upload" 
