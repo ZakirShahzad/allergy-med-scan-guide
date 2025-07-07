@@ -10,6 +10,7 @@ import MedicationResult from '@/components/MedicationResult';
 import DocumentAnalyzer from '@/components/DocumentAnalyzer';
 import AnalysisResult from '@/components/AnalysisResult';
 import ProfileSetup from '@/components/ProfileSetup';
+import ProfileCompletionBanner from '@/components/ProfileCompletionBanner';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -60,6 +61,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50">
       <Header />
+      <ProfileCompletionBanner onCompleteProfile={() => setActiveTab('profile')} />
       
       <main className="max-w-4xl mx-auto px-4 py-8 pb-24">
         {activeTab === 'scanner' && (
