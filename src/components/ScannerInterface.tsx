@@ -1,16 +1,62 @@
 
+import { useState } from 'react';
 import { Camera, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) => void }) => {
+  const { user } = useAuth();
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const analyzeImage = async (file: File) => {
+    setIsAnalyzing(true);
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const imageData = e.target?.result as string;
+        
+        // Call Supabase edge function
+        const { data, error } = await supabase.functions.invoke('analyze-medication', {
+          body: { 
+            imageData,
+            userId: user?.id 
+          }
+        });
+
+        if (error) throw error;
+        
+        onScanComplete({
+          ...data,
+          barcode: "AI-ANALYZED"
+        });
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      // Fallback to mock data if analysis fails
+      const mockResult = {
+        name: "Analysis Failed - Sample Data",
+        barcode: "000000000000",
+        ingredients: ["Unable to analyze"],
+        warnings: ["Please try again or consult healthcare professional"],
+        allergenRisk: "medium" as const
+      };
+      onScanComplete(mockResult);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleMockScan = () => {
-    // Simulate a scanned medication
+    // Demo with sample data
     const mockResult = {
-      name: "Ibuprofen 200mg",
+      name: "Ibuprofen 200mg (Demo)",
       barcode: "123456789012",
       ingredients: ["Ibuprofen", "Microcrystalline cellulose", "Lactose", "Sodium starch glycolate"],
       warnings: ["Contains lactose", "May cause drowsiness"],
-      allergenRisk: "medium"
+      allergenRisk: "medium" as const
     };
     onScanComplete(mockResult);
   };
@@ -22,15 +68,16 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
           <Camera className="w-10 h-10 text-white" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Scan Medication</h2>
-        <p className="text-gray-600 mb-6">Point your camera at the barcode to analyze ingredients</p>
+        <p className="text-gray-600 mb-6">Upload medication images for AI-powered allergy analysis</p>
         
         <div className="space-y-4">
           <Button 
             onClick={handleMockScan}
+            disabled={isAnalyzing}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-semibold rounded-xl transition-all duration-200 transform hover:scale-105"
           >
             <Camera className="w-5 h-5 mr-2" />
-            Start Scanning
+            {isAnalyzing ? 'Analyzing...' : 'Try Demo Scan'}
           </Button>
           
           <div className="relative">
@@ -57,7 +104,7 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
             className="hidden"
             onChange={(e) => {
               if (e.target.files?.[0]) {
-                handleMockScan(); // Mock the scan result
+                analyzeImage(e.target.files[0]);
               }
             }}
           />
