@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,12 +35,12 @@ serve(async (req) => {
       throw new Error('Invalid image format');
     }
 
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      console.error('OpenAI API key not found in environment');
-      throw new Error('OpenAI API key not configured');
+    const hfToken = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
+    if (!hfToken) {
+      console.error('Hugging Face token not found in environment');
+      throw new Error('Hugging Face token not configured');
     }
-    console.log('OpenAI API key found');
+    console.log('Hugging Face token found');
 
     // Initialize Supabase client
     const supabase = createClient(
@@ -71,73 +72,88 @@ serve(async (req) => {
       ? `You are a medical assistant analyzing medication images. Extract the medication name, active ingredients, and provide safety analysis based on user allergies: ${allergies.join(', ')} and medical conditions: ${medicalConditions.join(', ')}. Return ONLY valid JSON with: name, ingredients (array), warnings (array), allergenRisk (low/medium/high), and recommendations (array).`
       : `You are a medical assistant analyzing medication images. Extract the medication name and active ingredients. Since no user allergies or medical conditions are provided, give general safety information. Return ONLY valid JSON with: name, ingredients (array), warnings (array), allergenRisk (always "medium"), and recommendations (array).`;
 
-    console.log('Calling OpenAI API...');
+    console.log('Calling Hugging Face API...');
     console.log('Has profile data:', hasProfileData);
 
-    // Analyze image with OpenAI
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: hasProfileData 
-                  ? 'Analyze this medication image and determine if it\'s safe for someone with the specified allergies and medical conditions.'
-                  : 'Analyze this medication image and provide general medication information and safety guidelines.'
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: imageData
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 1000,
-        temperature: 0.3
-      }),
+    // Initialize Hugging Face client
+    const hf = new HfInference(hfToken);
+
+    // Convert base64 to blob for Hugging Face API
+    const base64Data = imageData.split(',')[1];
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const imageBlob = new Blob([bytes], { type: 'image/jpeg' });
+
+    // Use Hugging Face for image analysis
+    // First, get image description using BLIP
+    const imageDescription = await hf.imageToText({
+      data: imageBlob,
+      model: 'Salesforce/blip-image-captioning-base'
     });
 
-    console.log('OpenAI API response status:', response.status);
-    const aiResponse = await response.json();
+    console.log('Image description:', imageDescription.generated_text);
+
+    // Create a detailed prompt for text generation based on the image description
+    const analysisPrompt = hasProfileData 
+      ? `Based on this medication image description: "${imageDescription.generated_text}"
+      
+      User has allergies to: ${allergies.join(', ')}
+      User has medical conditions: ${medicalConditions.join(', ')}
+      
+      Analyze this medication and provide a JSON response with:
+      - name: medication name
+      - ingredients: array of active ingredients
+      - warnings: array of safety warnings specific to user's allergies/conditions
+      - allergenRisk: "low", "medium", or "high" based on user profile
+      - recommendations: array of recommendations
+      
+      Return ONLY valid JSON.`
+      : `Based on this medication image description: "${imageDescription.generated_text}"
+      
+      Analyze this medication and provide a JSON response with:
+      - name: medication name
+      - ingredients: array of active ingredients  
+      - warnings: array of general safety warnings
+      - allergenRisk: "medium" (since no user profile available)
+      - recommendations: array of general recommendations
+      
+      Return ONLY valid JSON.`;
+
+    // Use text generation for structured analysis
+    const analysisResponse = await hf.textGeneration({
+      model: 'microsoft/DialoGPT-medium',
+      inputs: analysisPrompt,
+      parameters: {
+        max_new_tokens: 500,
+        temperature: 0.3,
+        return_full_text: false
+      }
+    });
+
+    console.log('Hugging Face analysis response:', analysisResponse);
     
-    if (!response.ok) {
-      console.error('OpenAI API error:', aiResponse);
-      throw new Error(`OpenAI API error: ${aiResponse.error?.message || 'Unknown error'}`);
-    }
-    
-    console.log('OpenAI API call successful');
+    let aiResponseText = analysisResponse.generated_text || imageDescription.generated_text;
 
     // Parse AI response
     let analysisResult;
     try {
-      const content = aiResponse.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error('No content in OpenAI response');
-      }
-      
-      console.log('Raw AI response content:', content);
+      console.log('Raw Hugging Face response:', aiResponseText);
       
       // Try to extract JSON from the response
-      let jsonContent = content.trim();
+      let jsonContent = aiResponseText.trim();
       if (jsonContent.startsWith('```json')) {
         jsonContent = jsonContent.replace(/```json\n?/, '').replace(/\n?```$/, '');
       }
       
-      analysisResult = JSON.parse(jsonContent);
+      // Try to parse as JSON, if it fails, create structured response
+      try {
+        analysisResult = JSON.parse(jsonContent);
+      } catch (jsonError) {
+        throw new Error('Response is not valid JSON');
+      }
       
       // Validate required fields
       if (!analysisResult.name || !analysisResult.ingredients || !analysisResult.allergenRisk) {
@@ -155,28 +171,34 @@ serve(async (req) => {
         analysisResult.recommendations = [analysisResult.recommendations].filter(Boolean);
       }
       
-      console.log('Successfully parsed AI response');
+      console.log('Successfully parsed Hugging Face response');
       
     } catch (parseError) {
-      console.error('JSON parsing failed:', parseError);
-      console.log('Creating fallback structured response');
+      console.error('Response parsing failed:', parseError);
+      console.log('Creating fallback structured response from image description');
       
-      const content = aiResponse.choices[0]?.message?.content || 'Unable to analyze medication';
+      // Extract medication name from image description
+      const description = imageDescription.generated_text || 'medication';
+      const medicationName = description.includes('medicine') || description.includes('pill') || description.includes('tablet') 
+        ? description.split(' ').find(word => word.length > 3) || 'Unknown Medication'
+        : 'Medication (from image)';
       
-      // Create a structured response from the raw content
+      // Create a structured response from the image description
       analysisResult = {
-        name: hasProfileData ? "Medication Analysis (Parsing Error)" : "General Medication Analysis",
-        ingredients: ["Could not extract ingredients from image"],
+        name: medicationName,
+        ingredients: ["Unable to extract specific ingredients from image"],
         warnings: hasProfileData 
-          ? ["Unable to check against your specific allergies - please review manually"]
-          : ["Please review with healthcare professional"],
-        allergenRisk: "medium" as const,
+          ? [`Based on your allergies (${allergies.join(', ')}) and conditions (${medicalConditions.join(', ')}), please verify ingredients with a healthcare professional`]
+          : ["Please verify ingredients and safety with a healthcare professional"],
+        allergenRisk: hasProfileData ? "medium" : "medium",
         recommendations: [
-          "Consult with a healthcare professional",
-          hasProfileData ? "Manually check ingredients against your known allergies" : "Complete your profile for personalized analysis"
+          "Consult with a healthcare professional before taking",
+          "Verify the medication name and dosage",
+          hasProfileData ? "Check ingredients against your known allergies" : "Complete your profile for personalized analysis"
         ],
-        rawAnalysis: content,
-        parseError: true
+        rawAnalysis: imageDescription.generated_text,
+        parseError: true,
+        note: "Analysis based on image recognition - please verify details"
       };
     }
 
