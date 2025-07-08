@@ -1,11 +1,17 @@
 
-import { Pill, User, Settings } from 'lucide-react';
+import { Pill, User, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import ProfileSheet from './ProfileSheet';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Header = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
   return (
@@ -22,18 +28,30 @@ const Header = () => {
         </div>
         <div className="flex items-center space-x-4">
           {user ? (
-            <ProfileSheet>
-              <button className="p-2 rounded-lg hover:bg-gray-50 transition-colors">
-                <User className="w-5 h-5 text-gray-600" />
-              </button>
-            </ProfileSheet>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                  <User className="w-5 h-5 text-gray-600" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={signOut}
+                  className="cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
-            <button 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => navigate('/auth')}
-              className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <User className="w-5 h-5 text-gray-600" />
-            </button>
+              Log In
+            </Button>
           )}
           <button 
             onClick={() => navigate('/settings')}
