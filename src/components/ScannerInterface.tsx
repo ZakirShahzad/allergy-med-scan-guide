@@ -1,7 +1,7 @@
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Upload } from 'lucide-react';
+import { Camera, Upload, X, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +13,89 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Camera access functions
+  const startCamera = async () => {
+    if (!user?.id) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please log in to access the camera.",
+      });
+      return;
+    }
+
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: 'environment', // Use back camera on mobile
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      });
+      
+      setStream(mediaStream);
+      setShowCamera(true);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (error) {
+      console.error('Camera access error:', error);
+      toast({
+        variant: "destructive",
+        title: "Camera Access Denied",
+        description: "Please allow camera access to take photos.",
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    
+    if (!context) return;
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Convert canvas to blob and create file
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+        stopCamera();
+        analyzeImage(file);
+      }
+    }, 'image/jpeg', 0.9);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
 
   const analyzeImage = async (file: File) => {
     if (!user?.id) {
@@ -165,20 +248,8 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
     }
   };
 
-  const handleMockScan = () => {
-    // Navigate to results page with demo data
-    navigate('/analysis-results', {
-      state: {
-        analysisData: {
-          name: "Ibuprofen 200mg (Demo)",
-          ingredients: ["Ibuprofen", "Microcrystalline cellulose", "Lactose", "Sodium starch glycolate"],
-          warnings: ["Contains lactose", "May cause drowsiness"],
-          allergenRisk: "medium" as const,
-          recommendations: ["Take with food to reduce stomach irritation", "Avoid if allergic to NSAIDs"],
-          rawAnalysis: "This is a demo analysis showing how the AI would analyze your medication and cross-reference it with your allergy profile."
-        }
-      }
-    });
+  const handleCameraScan = () => {
+    startCamera();
   };
 
   return (
@@ -201,6 +272,39 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
         </div>
       )}
       
+      {/* Camera Interface */}
+      {showCamera && (
+        <div className="mb-6">
+          <div className="relative max-w-md mx-auto">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="w-full h-64 object-cover rounded-xl border-2 border-blue-300"
+            />
+            <div className="absolute top-2 right-2">
+              <Button
+                onClick={stopCamera}
+                variant="destructive"
+                size="sm"
+                className="rounded-full w-8 h-8 p-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+              <Button
+                onClick={capturePhoto}
+                className="bg-white text-gray-900 hover:bg-gray-100 rounded-full w-16 h-16 p-0"
+              >
+                <Camera className="w-8 h-8" />
+              </Button>
+            </div>
+          </div>
+          <canvas ref={canvasRef} className="hidden" />
+        </div>
+      )}
+      
       <div className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-2xl p-12 mb-6">
         <div className="bg-blue-600 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
           <Camera className="w-10 h-10 text-white" />
@@ -210,12 +314,12 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
         
         <div className="space-y-4">
           <Button 
-            onClick={handleMockScan}
-            disabled={isAnalyzing}
+            onClick={handleCameraScan}
+            disabled={isAnalyzing || showCamera}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-semibold rounded-xl transition-all duration-200 transform hover:scale-105"
           >
             <Camera className="w-5 h-5 mr-2" />
-            {isAnalyzing ? 'Analyzing...' : 'Try Demo Scan'}
+            {isAnalyzing ? 'Analyzing...' : showCamera ? 'Camera Active' : 'Take Photo'}
           </Button>
           
           <div className="relative">
@@ -229,7 +333,7 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
           
           <Button 
             variant="outline" 
-            disabled={isAnalyzing}
+            disabled={isAnalyzing || showCamera}
             className="w-full py-4 text-lg font-semibold rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
             onClick={() => document.getElementById('file-upload')?.click()}
           >
