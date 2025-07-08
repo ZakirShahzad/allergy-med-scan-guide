@@ -78,14 +78,31 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
     // Draw video frame to canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    // Convert canvas to blob and create file
+    // Convert canvas to blob and create image URL
     canvas.toBlob((blob) => {
       if (blob) {
-        const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+        const imageUrl = URL.createObjectURL(blob);
+        setUploadedImage(imageUrl);
         stopCamera();
-        analyzeImage(file);
       }
     }, 'image/jpeg', 0.9);
+  };
+
+  const handleRetake = () => {
+    setUploadedImage(null);
+    startCamera();
+  };
+
+  const handleAnalyze = () => {
+    if (uploadedImage) {
+      // Convert blob URL back to file for analysis
+      fetch(uploadedImage)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+          analyzeImage(file);
+        });
+    }
   };
 
   // Cleanup on unmount
@@ -264,11 +281,11 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
     <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
       {uploadedImage && (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">Uploaded Image</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Captured Photo</h3>
           <div className="relative max-w-md mx-auto">
             <img 
               src={uploadedImage} 
-              alt="Uploaded medication" 
+              alt="Captured medication" 
               className="w-full h-64 object-cover rounded-xl border-2 border-gray-200"
             />
             {isAnalyzing && (
@@ -277,6 +294,25 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
               </div>
             )}
           </div>
+          {!isAnalyzing && (
+            <div className="flex gap-3 mt-4 justify-center">
+              <Button
+                onClick={handleRetake}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Retake
+              </Button>
+              <Button
+                onClick={handleAnalyze}
+                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+              >
+                <Camera className="w-4 h-4" />
+                Analyze Photo
+              </Button>
+            </div>
+          )}
         </div>
       )}
       
