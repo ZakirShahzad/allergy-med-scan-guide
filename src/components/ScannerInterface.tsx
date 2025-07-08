@@ -97,6 +97,14 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
     };
   }, [stream]);
 
+  // Set video source when stream is available
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(console.error);
+    }
+  }, [stream]);
+
   const analyzeImage = async (file: File) => {
     if (!user?.id) {
       toast({
@@ -280,6 +288,14 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
               ref={videoRef}
               autoPlay
               playsInline
+              muted
+              width="320"
+              height="240"
+              onLoadedMetadata={() => {
+                if (videoRef.current) {
+                  videoRef.current.play().catch(console.error);
+                }
+              }}
               className="w-full h-64 object-cover rounded-xl border-2 border-blue-300"
             />
             <div className="absolute top-2 right-2">
