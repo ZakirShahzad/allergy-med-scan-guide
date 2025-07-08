@@ -67,6 +67,8 @@ const ProfileSetup = () => {
           allergies: allergies,
           medical_conditions: medicalConditions,
           updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
         });
 
       if (error) {
