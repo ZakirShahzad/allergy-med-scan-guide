@@ -7,17 +7,14 @@ import Header from '@/components/Header';
 import Navigation from '@/components/Navigation';
 import ScannerInterface from '@/components/ScannerInterface';
 import MedicationResult from '@/components/MedicationResult';
-import DocumentAnalyzer from '@/components/DocumentAnalyzer';
-import AnalysisResult from '@/components/AnalysisResult';
 import ProfileSetup from '@/components/ProfileSetup';
 import ProfileCompletionBanner from '@/components/ProfileCompletionBanner';
 
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'scanner' | 'analyzer' | 'profile'>('scanner');
+  const [activeTab, setActiveTab] = useState<'scanner' | 'profile'>('scanner');
   const [scanResult, setScanResult] = useState<any>(null);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -29,16 +26,8 @@ const Index = () => {
     setScanResult(result);
   };
 
-  const handleAnalysisComplete = (result: any) => {
-    setAnalysisResult(result);
-  };
-
   const resetScanner = () => {
     setScanResult(null);
-  };
-
-  const resetAnalyzer = () => {
-    setAnalysisResult(null);
   };
 
   if (loading) {
@@ -70,16 +59,6 @@ const Index = () => {
               <ScannerInterface onScanComplete={handleScanComplete} />
             ) : (
               <MedicationResult result={scanResult} onNewScan={resetScanner} />
-            )}
-          </div>
-        )}
-
-        {activeTab === 'analyzer' && (
-          <div>
-            {!analysisResult ? (
-              <DocumentAnalyzer onAnalysisComplete={handleAnalysisComplete} />
-            ) : (
-              <AnalysisResult result={analysisResult} onNewAnalysis={resetAnalyzer} />
             )}
           </div>
         )}

@@ -2,8 +2,8 @@
 import { Pill, FileText, User, Home } from 'lucide-react';
 
 interface NavigationProps {
-  activeTab: 'scanner' | 'analyzer' | 'profile';
-  onTabChange: (tab: 'scanner' | 'analyzer' | 'profile') => void;
+  activeTab: 'scanner' | 'profile';
+  onTabChange: (tab: 'scanner' | 'profile') => void;
 }
 
 const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
@@ -20,18 +20,6 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
         >
           <Pill className="w-6 h-6" />
           <span className="text-xs font-medium">Scanner</span>
-        </button>
-        
-        <button
-          onClick={() => onTabChange('analyzer')}
-          className={`flex flex-col items-center space-y-1 px-4 py-3 rounded-xl transition-all duration-200 ${
-            activeTab === 'analyzer' 
-              ? 'bg-teal-50 text-teal-600' 
-              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-          }`}
-        >
-          <FileText className="w-6 h-6" />
-          <span className="text-xs font-medium">Analyzer</span>
         </button>
         
         <button
