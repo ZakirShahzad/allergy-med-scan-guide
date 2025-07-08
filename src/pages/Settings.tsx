@@ -34,20 +34,70 @@ const Settings = () => {
   useEffect(() => {
     if (!user) {
       navigate('/auth');
+    } else {
+      loadUserSettings();
     }
   }, [user, navigate]);
 
+  const loadUserSettings = async () => {
+    if (!user) return;
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('notifications_enabled, email_alerts, emergency_sharing, data_retention_days')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error loading settings:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load your settings.",
+      });
+      return;
+    }
+
+    if (profile) {
+      setSettings({
+        notifications_enabled: profile.notifications_enabled ?? true,
+        email_alerts: profile.email_alerts ?? false,
+        emergency_sharing: profile.emergency_sharing ?? true,
+        data_retention_days: profile.data_retention_days ?? 365,
+      });
+    }
+  };
+
   const handleSaveSettings = async () => {
+    if (!user) return;
+    
     setSaving(true);
-    // In a real app, you'd save these to a user_settings table
-    // For now, we'll just show a success message
-    setTimeout(() => {
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        notifications_enabled: settings.notifications_enabled,
+        email_alerts: settings.email_alerts,
+        emergency_sharing: settings.emergency_sharing,
+        data_retention_days: settings.data_retention_days,
+      })
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save your settings. Please try again.",
+      });
+    } else {
       toast({
         title: "Settings saved",
         description: "Your preferences have been updated successfully.",
       });
-      setSaving(false);
-    }, 1000);
+    }
+    
+    setSaving(false);
   };
 
   const handleExportData = async () => {

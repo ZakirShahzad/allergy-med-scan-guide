@@ -20,10 +20,14 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          data_retention_days: number | null
           display_name: string | null
+          email_alerts: boolean | null
           emergency_contact: string | null
+          emergency_sharing: boolean | null
           id: string
           medical_conditions: string[] | null
+          notifications_enabled: boolean | null
           updated_at: string
           user_id: string
         }
@@ -32,10 +36,14 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          data_retention_days?: number | null
           display_name?: string | null
+          email_alerts?: boolean | null
           emergency_contact?: string | null
+          emergency_sharing?: boolean | null
           id?: string
           medical_conditions?: string[] | null
+          notifications_enabled?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -44,10 +52,14 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          data_retention_days?: number | null
           display_name?: string | null
+          email_alerts?: boolean | null
           emergency_contact?: string | null
+          emergency_sharing?: boolean | null
           id?: string
           medical_conditions?: string[] | null
+          notifications_enabled?: boolean | null
           updated_at?: string
           user_id?: string
         }
