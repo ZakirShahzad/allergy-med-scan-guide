@@ -65,17 +65,14 @@ serve(async (req) => {
     if (!openaiApiKey) {
       console.log('Creating demo response - OpenAI API key not configured');
       const analysisResult = {
-        name: "Demo Medication Analysis",
-        ingredients: hasProfileData 
-          ? ["Demo Active Ingredient", "Demo Inactive Ingredient"]
-          : ["Demo Active Ingredient"],
-        warnings: hasProfileData 
-          ? [`Configure your OpenAI API key for real analysis. Your allergies: ${allergies.join(', ')}`]
-          : ["Configure your OpenAI API key for personalized analysis"],
+        name: "Unable to Analyze",
+        ingredients: ["Image could not be analyzed"],
+        warnings: ["Unable to identify this medication from the image. Please ensure the image is clear and shows the medication label or packaging."],
         allergenRisk: "medium" as const,
         recommendations: [
-          "Set up OpenAI API key in Supabase secrets for real analysis",
-          "This is a demo response to show the interface"
+          "Try taking a clearer photo with better lighting",
+          "Make sure the medication label is visible and not blurred",
+          "Consult with a pharmacist or healthcare provider for medication identification"
         ],
         hasUserProfile: hasProfileData,
         timestamp: new Date().toISOString(),
@@ -165,18 +162,14 @@ serve(async (req) => {
       
       // Create fallback response when API fails
       analysisResult = {
-        name: "Medication Analysis (API Error)",
-        ingredients: hasProfileData 
-          ? ["Unable to analyze - API unavailable", "Please try again later"]
-          : ["Unable to analyze - API unavailable"],
-        warnings: hasProfileData 
-          ? [`API temporarily unavailable. Your allergies: ${allergies.join(', ')}`]
-          : ["API temporarily unavailable - please try again later"],
+        name: "Unable to Analyze",
+        ingredients: ["Image could not be analyzed"],
+        warnings: ["Unable to identify this medication from the image. Please ensure the image is clear and shows the medication label or packaging."],
         allergenRisk: "medium" as const,
         recommendations: [
-          "OpenAI API is temporarily unavailable",
-          "Please try again in a few minutes",
-          hasProfileData ? "Check ingredients against your known allergies" : "Complete your profile for personalized analysis"
+          "Try taking a clearer photo with better lighting",
+          "Make sure the medication label is visible and not blurred",
+          "Consult with a pharmacist or healthcare provider for medication identification"
         ],
         hasUserProfile: hasProfileData,
         timestamp: new Date().toISOString(),
@@ -204,6 +197,25 @@ serve(async (req) => {
     }
     if (!Array.isArray(analysisResult.recommendations)) {
       analysisResult.recommendations = [analysisResult.recommendations].filter(Boolean);
+    }
+
+    // Check for allergies and add positive feedback if safe
+    if (hasProfileData && analysisResult.ingredients.length > 0) {
+      const ingredientText = analysisResult.ingredients.join(' ').toLowerCase();
+      const allergyText = allergies.join(' ').toLowerCase();
+      
+      // Simple check if any known allergies appear in ingredients
+      const hasAllergyMatch = allergies.some(allergy => 
+        ingredientText.includes(allergy.toLowerCase())
+      );
+      
+      if (!hasAllergyMatch && analysisResult.allergenRisk === 'low') {
+        // Add positive message when medication appears safe
+        analysisResult.recommendations = [
+          `Good news! This medication does not contain any of your known allergies: ${allergies.join(', ')}`,
+          ...(analysisResult.recommendations || [])
+        ];
+      }
     }
 
     // Add metadata
