@@ -154,7 +154,7 @@ const AnalysisResults = ({ result, onNewAnalysis }: AnalysisResultsProps) => {
       )}
 
       {/* Recommendations */}
-      {result.recommendations.length > 0 && (
+      {result.recommendations.length > 0 && result.userMedications.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center text-blue-700">

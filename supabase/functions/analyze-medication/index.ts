@@ -47,9 +47,11 @@ serve(async (req) => {
       throw new Error(`Failed to fetch user medications: ${medicationsError.message}`);
     }
 
-    console.log('User medications:', medications);
+    console.log('Raw medications data:', medications);
+    console.log('Number of medications found:', medications?.length || 0);
     const userMedications = medications || [];
     const hasMedications = userMedications.length > 0;
+    console.log('User has medications:', hasMedications);
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     
