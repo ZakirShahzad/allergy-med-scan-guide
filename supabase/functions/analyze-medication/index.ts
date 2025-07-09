@@ -110,58 +110,98 @@ serve(async (req) => {
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
-    const imageBlob = new Blob([bytes], { type: 'image/jpeg' });
-
-
-    // Use Hugging Face for image analysis
-    // First, get image description using BLIP
-    const imageDescription = await hf.imageToText({
-      data: imageBlob,
-      model: 'Salesforce/blip-image-captioning-base'
-    });
-
-    console.log('Image description:', imageDescription.generated_text);
-
-    // Create a detailed prompt for text generation based on the image description
-    const analysisPrompt = hasProfileData 
-      ? `Based on this medication image description: "${imageDescription.generated_text}"
-      
-      User has allergies to: ${allergies.join(', ')}
-      User has medical conditions: ${medicalConditions.join(', ')}
-      
-      Analyze this medication and provide a JSON response with:
-      - name: medication name
-      - ingredients: array of active ingredients
-      - warnings: array of safety warnings specific to user's allergies/conditions
-      - allergenRisk: "low", "medium", or "high" based on user profile
-      - recommendations: array of recommendations
-      
-      Return ONLY valid JSON.`
-      : `Based on this medication image description: "${imageDescription.generated_text}"
-      
-      Analyze this medication and provide a JSON response with:
-      - name: medication name
-      - ingredients: array of active ingredients  
-      - warnings: array of general safety warnings
-      - allergenRisk: "medium" (since no user profile available)
-      - recommendations: array of general recommendations
-      
-      Return ONLY valid JSON.`;
-
-    // Use text generation for structured analysis
-    const analysisResponse = await hf.textGeneration({
-      model: 'microsoft/DialoGPT-medium',
-      inputs: analysisPrompt,
-      parameters: {
-        max_new_tokens: 500,
-        temperature: 0.3,
-        return_full_text: false
-      }
-    });
-
-    console.log('Hugging Face analysis response:', analysisResponse);
     
-    let aiResponseText = analysisResponse.generated_text || imageDescription.generated_text;
+    // Detect image type from data URL
+    const imageType = imageData.split(';')[0].split('/')[1] || 'jpeg';
+    const mimeType = `image/${imageType}`;
+    const imageBlob = new Blob([bytes], { type: mimeType });
+
+    console.log('Image blob created:', { size: imageBlob.size, type: mimeType });
+
+    let imageDescription;
+    let analysisResponse;
+
+    try {
+      // Use Hugging Face for image analysis with error handling
+      console.log('Attempting Hugging Face image analysis...');
+      
+      imageDescription = await hf.imageToText({
+        data: imageBlob,
+        model: 'Salesforce/blip-image-captioning-base'
+      });
+
+      console.log('Image description successful:', imageDescription.generated_text);
+
+      // Create a detailed prompt for text generation based on the image description
+      const analysisPrompt = hasProfileData 
+        ? `Based on this medication image description: "${imageDescription.generated_text}"
+        
+        User has allergies to: ${allergies.join(', ')}
+        User has medical conditions: ${medicalConditions.join(', ')}
+        
+        Analyze this medication and provide a JSON response with:
+        - name: medication name
+        - ingredients: array of active ingredients
+        - warnings: array of safety warnings specific to user's allergies/conditions
+        - allergenRisk: "low", "medium", or "high" based on user profile
+        - recommendations: array of recommendations
+        
+        Return ONLY valid JSON.`
+        : `Based on this medication image description: "${imageDescription.generated_text}"
+        
+        Analyze this medication and provide a JSON response with:
+        - name: medication name
+        - ingredients: array of active ingredients  
+        - warnings: array of general safety warnings
+        - allergenRisk: "medium" (since no user profile available)
+        - recommendations: array of general recommendations
+        
+        Return ONLY valid JSON.`;
+
+      // Use text generation for structured analysis
+      analysisResponse = await hf.textGeneration({
+        model: 'microsoft/DialoGPT-medium',
+        inputs: analysisPrompt,
+        parameters: {
+          max_new_tokens: 500,
+          temperature: 0.3,
+          return_full_text: false
+        }
+      });
+
+      console.log('Hugging Face analysis response:', analysisResponse);
+      
+    } catch (hfError) {
+      console.error('Hugging Face API error:', hfError);
+      console.log('Falling back to demo response due to API error');
+      
+      // Create fallback response when API fails
+      const analysisResult = {
+        name: "Medication Analysis (API Error)",
+        ingredients: hasProfileData 
+          ? ["Unable to analyze - API unavailable", "Please try again later"]
+          : ["Unable to analyze - API unavailable"],
+        warnings: hasProfileData 
+          ? [`API temporarily unavailable. Your allergies: ${allergies.join(', ')}`]
+          : ["API temporarily unavailable - please try again later"],
+        allergenRisk: "medium" as const,
+        recommendations: [
+          "Hugging Face API is temporarily unavailable",
+          "Please try again in a few minutes",
+          hasProfileData ? "Check ingredients against your known allergies" : "Complete your profile for personalized analysis"
+        ],
+        hasUserProfile: hasProfileData,
+        timestamp: new Date().toISOString(),
+        note: "API temporarily unavailable - this is a fallback response"
+      };
+      
+      return new Response(JSON.stringify(analysisResult), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
+
+    let aiResponseText = analysisResponse?.generated_text || imageDescription?.generated_text || 'Unable to analyze image';
 
     // Parse AI response
     let analysisResult;
