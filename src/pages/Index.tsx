@@ -9,11 +9,12 @@ import ScannerInterface from '@/components/ScannerInterface';
 import MedicationResult from '@/components/MedicationResult';
 import ProfileSetup from '@/components/ProfileSetup';
 import ProfileCompletionBanner from '@/components/ProfileCompletionBanner';
+import SubscriptionStatus from '@/components/SubscriptionStatus';
 
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'scanner' | 'profile'>('scanner');
+  const [activeTab, setActiveTab] = useState<'scanner' | 'profile' | 'billing'>('scanner');
   const [scanResult, setScanResult] = useState<any>(null);
 
   useEffect(() => {
@@ -64,6 +65,16 @@ const Index = () => {
         )}
 
         {activeTab === 'profile' && <ProfileSetup />}
+        
+        {activeTab === 'billing' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Subscription & Billing</h1>
+              <p className="text-gray-600">Manage your subscription and view usage statistics</p>
+            </div>
+            <SubscriptionStatus />
+          </div>
+        )}
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white">

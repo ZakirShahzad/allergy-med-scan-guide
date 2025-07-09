@@ -1,5 +1,5 @@
 
-import { Pill, User, Settings, LogOut } from 'lucide-react';
+import { Pill, User, Settings, LogOut, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import SubscriptionStatus from './SubscriptionStatus';
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -27,6 +28,7 @@ const Header = () => {
           </div>
         </div>
         <div className="flex items-center space-x-4">
+          {user && <SubscriptionStatus compact />}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -35,6 +37,13 @@ const Header = () => {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={() => navigate('/billing')}
+                  className="cursor-pointer"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Billing
+                </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={signOut}
                   className="cursor-pointer"
