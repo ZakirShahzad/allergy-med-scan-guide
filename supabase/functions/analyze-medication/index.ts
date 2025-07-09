@@ -28,12 +28,26 @@ serve(async (req) => {
       throw new Error('Either image data or product name is required');
     }
 
-    // Initialize Supabase client
+    // Get the authorization token from the request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('No authorization header provided');
+      throw new Error('Authorization header required');
+    }
+
+    // Initialize Supabase client with user authentication
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      }
     );
-    console.log('Supabase client initialized');
+    console.log('Supabase client initialized with user auth');
 
     // Get user's current medications
     console.log('Fetching user medications...');
