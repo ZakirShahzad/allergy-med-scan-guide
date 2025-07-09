@@ -13,51 +13,43 @@ serve(async (req) => {
   }
 
   try {
-    console.log('=== MEDICATION ANALYSIS START ===');
+    console.log('=== FOOD-MEDICATION INTERACTION ANALYSIS START ===');
     
-    const { imageData, userId } = await req.json();
-    console.log('Request data:', { userId, imageDataLength: imageData?.length });
+    const { imageData, productName, analysisType, userId } = await req.json();
+    console.log('Request data:', { userId, analysisType, productName, imageDataLength: imageData?.length });
     
-    if (!imageData) {
-      console.error('No image data provided');
-      throw new Error('No image data provided');
-    }
-
     if (!userId) {
       console.error('No user ID provided');
       throw new Error('User authentication required');
     }
 
-    // Validate image format
-    if (!imageData.startsWith('data:image/')) {
-      console.error('Invalid image format, expected data URL');
-      throw new Error('Invalid image format');
+    if (!imageData && !productName) {
+      console.error('No image data or product name provided');
+      throw new Error('Either image data or product name is required');
     }
 
-    // Initialize Supabase client first to get user profile
+    // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
     console.log('Supabase client initialized');
 
-    // Get user's allergy profile
-    console.log('Fetching user profile...');
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('allergies, medical_conditions, display_name')
-      .eq('user_id', userId)
-      .maybeSingle();
+    // Get user's current medications
+    console.log('Fetching user medications...');
+    const { data: medications, error: medicationsError } = await supabase
+      .from('user_medications')
+      .select('medication_name, dosage, frequency, purpose')
+      .eq('user_id', userId);
 
-    if (profileError) {
-      console.error('Profile fetch error:', profileError);
-      throw new Error(`Failed to fetch user profile: ${profileError.message}`);
+    if (medicationsError) {
+      console.error('Medications fetch error:', medicationsError);
+      throw new Error(`Failed to fetch user medications: ${medicationsError.message}`);
     }
 
-    console.log('Profile data:', profile);
-    const allergies = profile?.allergies || [];
-    const medicalConditions = profile?.medical_conditions || [];
-    const hasProfileData = allergies.length > 0 || medicalConditions.length > 0;
+    console.log('User medications:', medications);
+    const userMedications = medications || [];
+    const hasMedications = userMedications.length > 0;
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     
@@ -65,16 +57,17 @@ serve(async (req) => {
     if (!openaiApiKey) {
       console.log('Creating demo response - OpenAI API key not configured');
       const analysisResult = {
-        name: "Unable to Analyze",
-        ingredients: ["Image could not be analyzed"],
-        warnings: ["Unable to identify this medication from the image. Please ensure the image is clear and shows the medication label or packaging."],
-        allergenRisk: "medium" as const,
+        productName: productName || "Unknown Product",
+        compatibilityScore: 75,
+        interactionLevel: "neutral" as const,
+        warnings: hasMedications 
+          ? [`Unable to analyze interactions with your ${userMedications.length} medication(s) without API access`]
+          : ["No medications in your profile to check interactions"],
         recommendations: [
-          "Try taking a clearer photo with better lighting",
-          "Make sure the medication label is visible and not blurred",
-          "Consult with a pharmacist or healthcare provider for medication identification"
+          "Add your current medications to get personalized analysis",
+          "Consult with a pharmacist about food-drug interactions"
         ],
-        hasUserProfile: hasProfileData,
+        userMedications: userMedications.map(med => med.medication_name),
         timestamp: new Date().toISOString(),
         note: "Demo response - configure OpenAI API key for real analysis"
       };
@@ -87,49 +80,76 @@ serve(async (req) => {
     }
     
     console.log('OpenAI API key found');
-
     console.log('Calling OpenAI API...');
-    console.log('Has profile data:', hasProfileData);
+    console.log('User has medications:', hasMedications);
 
     // Create the detailed prompt for OpenAI
-    const analysisPrompt = hasProfileData 
-      ? `Analyze this medication image. Extract the medication name, active ingredients, and provide safety analysis based on user allergies: ${allergies.join(', ')} and medical conditions: ${medicalConditions.join(', ')}. Return ONLY valid JSON with: name, ingredients (array), warnings (array), allergenRisk (low/medium/high), and recommendations (array).`
-      : `Analyze this medication image. Extract the medication name and active ingredients. Since no user allergies or medical conditions are provided, give general safety information. Return ONLY valid JSON with: name, ingredients (array), warnings (array), allergenRisk (always "medium"), and recommendations (array).`;
+    const medicationList = userMedications.map(med => 
+      `${med.medication_name}${med.dosage ? ` (${med.dosage})` : ''}${med.purpose ? ` - for ${med.purpose}` : ''}`
+    ).join(', ');
+
+    let analysisPrompt;
+    
+    if (imageData) {
+      analysisPrompt = hasMedications 
+        ? `Analyze this food/product image for potential interactions with these medications: ${medicationList}. 
+           Identify the product, check for ingredients that could interact with these medications.
+           Consider: Will this food affect medication absorption? Could it worsen side effects? Could it interfere with efficacy?
+           Return ONLY valid JSON with: productName, compatibilityScore (0-100), interactionLevel (positive/neutral/negative), warnings (array), recommendations (array).`
+        : `Analyze this food/product image. Identify the product and provide general nutritional information.
+           Return ONLY valid JSON with: productName, compatibilityScore (75), interactionLevel ("neutral"), warnings (array), recommendations (array).`;
+    } else {
+      analysisPrompt = hasMedications 
+        ? `Analyze the food/product "${productName}" for potential interactions with these medications: ${medicationList}.
+           Consider: Will this food affect medication absorption? Could it worsen side effects? Could it interfere with efficacy?
+           Return ONLY valid JSON with: productName, compatibilityScore (0-100), interactionLevel (positive/neutral/negative), warnings (array), recommendations (array).`
+        : `Analyze the food/product "${productName}". Provide general nutritional information.
+           Return ONLY valid JSON with: productName, compatibilityScore (75), interactionLevel ("neutral"), warnings (array), recommendations (array).`;
+    }
 
     let analysisResult;
 
     try {
       console.log('Attempting OpenAI vision analysis...');
       
-      // Call OpenAI GPT-4o (vision model)
+      // Call OpenAI API - use vision model if image, otherwise text model
+      const requestBody = imageData ? {
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: analysisPrompt
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: imageData
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.3
+      } : {
+        model: 'gpt-4o',
+        messages: [
+          { role: 'user', content: analysisPrompt }
+        ],
+        max_tokens: 1000,
+        temperature: 0.3
+      };
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${openaiApiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: analysisPrompt
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: imageData
-                  }
-                }
-              ]
-            }
-          ],
-          max_tokens: 1000,
-          temperature: 0.3
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -162,16 +182,15 @@ serve(async (req) => {
       
       // Create fallback response when API fails
       analysisResult = {
-        name: "Unable to Analyze",
-        ingredients: ["Image could not be analyzed"],
-        warnings: ["Unable to identify this medication from the image. Please ensure the image is clear and shows the medication label or packaging."],
-        allergenRisk: "medium" as const,
+        productName: productName || "Unknown Product",
+        compatibilityScore: 50,
+        interactionLevel: "neutral" as const,
+        warnings: ["Unable to analyze food-medication interactions due to API error"],
         recommendations: [
-          "Try taking a clearer photo with better lighting",
-          "Make sure the medication label is visible and not blurred",
-          "Consult with a pharmacist or healthcare provider for medication identification"
+          "Try again later or consult with a pharmacist",
+          "Review your medications with a healthcare provider"
         ],
-        hasUserProfile: hasProfileData,
+        userMedications: userMedications.map(med => med.medication_name),
         timestamp: new Date().toISOString(),
         note: "API temporarily unavailable - this is a fallback response"
       };
@@ -183,47 +202,59 @@ serve(async (req) => {
     }
 
     // Validate required fields and ensure arrays are arrays
-    if (!analysisResult.name || !analysisResult.ingredients || !analysisResult.allergenRisk) {
+    if (!analysisResult.productName || !analysisResult.interactionLevel) {
       console.error('Missing required fields in OpenAI response');
       throw new Error('Missing required fields in AI response');
     }
     
-    // Ensure arrays are arrays
-    if (!Array.isArray(analysisResult.ingredients)) {
-      analysisResult.ingredients = [analysisResult.ingredients].filter(Boolean);
-    }
+    // Ensure arrays are arrays and score is valid
     if (!Array.isArray(analysisResult.warnings)) {
       analysisResult.warnings = [analysisResult.warnings].filter(Boolean);
     }
     if (!Array.isArray(analysisResult.recommendations)) {
       analysisResult.recommendations = [analysisResult.recommendations].filter(Boolean);
     }
+    if (typeof analysisResult.compatibilityScore !== 'number') {
+      analysisResult.compatibilityScore = 75; // Default neutral score
+    }
 
-    // Check for allergies and add positive feedback if safe
-    if (hasProfileData && analysisResult.ingredients.length > 0) {
-      const ingredientText = analysisResult.ingredients.join(' ').toLowerCase();
-      const allergyText = allergies.join(' ').toLowerCase();
-      
-      // Simple check if any known allergies appear in ingredients
-      const hasAllergyMatch = allergies.some(allergy => 
-        ingredientText.includes(allergy.toLowerCase())
-      );
-      
-      if (!hasAllergyMatch && analysisResult.allergenRisk === 'low') {
-        // Add positive message when medication appears safe
-        analysisResult.recommendations = [
-          `Good news! This medication does not contain any of your known allergies: ${allergies.join(', ')}`,
-          ...(analysisResult.recommendations || [])
-        ];
-      }
+    // Add positive feedback for safe combinations
+    if (hasMedications && analysisResult.interactionLevel === 'positive') {
+      analysisResult.recommendations = [
+        `Great choice! This food may actually support your medication therapy.`,
+        ...(analysisResult.recommendations || [])
+      ];
+    } else if (hasMedications && analysisResult.interactionLevel === 'neutral' && analysisResult.compatibilityScore > 80) {
+      analysisResult.recommendations = [
+        `This food appears safe to consume with your current medications.`,
+        ...(analysisResult.recommendations || [])
+      ];
     }
 
     // Add metadata
-    analysisResult.hasUserProfile = hasProfileData;
+    analysisResult.userMedications = userMedications.map(med => med.medication_name);
     analysisResult.timestamp = new Date().toISOString();
     
+    // Save analysis to history
+    if (analysisType) {
+      try {
+        await supabase.from('food_analysis_history').insert({
+          user_id: userId,
+          product_name: analysisResult.productName,
+          analysis_type: analysisType,
+          compatibility_score: analysisResult.compatibilityScore,
+          interaction_level: analysisResult.interactionLevel,
+          warnings: analysisResult.warnings,
+          recommendations: analysisResult.recommendations
+        });
+      } catch (historyError) {
+        console.error('Failed to save analysis history:', historyError);
+        // Don't fail the request if history save fails
+      }
+    }
+    
     console.log('Final analysis result:', analysisResult);
-    console.log('=== MEDICATION ANALYSIS COMPLETE ===');
+    console.log('=== FOOD-MEDICATION INTERACTION ANALYSIS COMPLETE ===');
     
     return new Response(JSON.stringify(analysisResult), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -231,7 +262,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('=== MEDICATION ANALYSIS ERROR ===');
+    console.error('=== FOOD-MEDICATION INTERACTION ANALYSIS ERROR ===');
     console.error('Error details:', error);
     console.error('Error stack:', error.stack);
     

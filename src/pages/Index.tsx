@@ -2,20 +2,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Pill } from 'lucide-react';
+import { Utensils } from 'lucide-react';
 import Header from '@/components/Header';
 import Navigation from '@/components/Navigation';
-import ScannerInterface from '@/components/ScannerInterface';
-import MedicationResult from '@/components/MedicationResult';
-import ProfileSetup from '@/components/ProfileSetup';
-import ProfileCompletionBanner from '@/components/ProfileCompletionBanner';
+import FoodAnalyzer from '@/components/FoodAnalyzer';
+import AnalysisResults from '@/components/AnalysisResults';
+import MedicationManager from '@/components/MedicationManager';
 import SubscriptionStatus from '@/components/SubscriptionStatus';
 
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'scanner' | 'profile' | 'billing'>('scanner');
-  const [scanResult, setScanResult] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'analyzer' | 'medications' | 'billing'>('analyzer');
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -23,22 +22,22 @@ const Index = () => {
     }
   }, [user, loading, navigate]);
 
-  const handleScanComplete = (result: any) => {
-    setScanResult(result);
+  const handleAnalysisComplete = (result: any) => {
+    setAnalysisResult(result);
   };
 
-  const resetScanner = () => {
-    setScanResult(null);
+  const resetAnalyzer = () => {
+    setAnalysisResult(null);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="bg-blue-600 p-3 rounded-xl inline-block mb-4">
-            <Pill className="w-8 h-8 text-white" />
+          <div className="bg-green-600 p-3 rounded-xl inline-block mb-4">
+            <Utensils className="w-8 h-8 text-white" />
           </div>
-          <div className="text-lg font-semibold text-gray-700">Loading Flikt...</div>
+          <div className="text-lg font-semibold text-gray-700">Loading NutriGuard...</div>
         </div>
       </div>
     );
@@ -49,22 +48,21 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
       <Header />
-      <ProfileCompletionBanner onCompleteProfile={() => setActiveTab('profile')} />
       
       <main className="max-w-4xl mx-auto px-4 py-8 pb-24">
-        {activeTab === 'scanner' && (
+        {activeTab === 'analyzer' && (
           <div>
-            {!scanResult ? (
-              <ScannerInterface onScanComplete={handleScanComplete} />
+            {!analysisResult ? (
+              <FoodAnalyzer onAnalysisComplete={handleAnalysisComplete} />
             ) : (
-              <MedicationResult result={scanResult} onNewScan={resetScanner} />
+              <AnalysisResults result={analysisResult} onNewAnalysis={resetAnalyzer} />
             )}
           </div>
         )}
 
-        {activeTab === 'profile' && <ProfileSetup />}
+        {activeTab === 'medications' && <MedicationManager />}
         
         {activeTab === 'billing' && (
           <div className="space-y-6">

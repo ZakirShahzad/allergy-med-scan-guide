@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      food_analysis_history: {
+        Row: {
+          analysis_type: string
+          analyzed_at: string
+          compatibility_score: number | null
+          id: string
+          interaction_level: string | null
+          product_name: string
+          recommendations: string[] | null
+          user_id: string
+          warnings: string[] | null
+        }
+        Insert: {
+          analysis_type: string
+          analyzed_at?: string
+          compatibility_score?: number | null
+          id?: string
+          interaction_level?: string | null
+          product_name: string
+          recommendations?: string[] | null
+          user_id: string
+          warnings?: string[] | null
+        }
+        Update: {
+          analysis_type?: string
+          analyzed_at?: string
+          compatibility_score?: number | null
+          id?: string
+          interaction_level?: string | null
+          product_name?: string
+          recommendations?: string[] | null
+          user_id?: string
+          warnings?: string[] | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           allergies: string[] | null
@@ -60,6 +96,42 @@ export type Database = {
           id?: string
           medical_conditions?: string[] | null
           notifications_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_medications: {
+        Row: {
+          created_at: string
+          dosage: string | null
+          frequency: string | null
+          id: string
+          medication_name: string
+          notes: string | null
+          purpose: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dosage?: string | null
+          frequency?: string | null
+          id?: string
+          medication_name: string
+          notes?: string | null
+          purpose?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dosage?: string | null
+          frequency?: string | null
+          id?: string
+          medication_name?: string
+          notes?: string | null
+          purpose?: string | null
           updated_at?: string
           user_id?: string
         }

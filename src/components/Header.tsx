@@ -1,5 +1,5 @@
 
-import { Pill, User, Settings, LogOut, CreditCard } from 'lucide-react';
+import { Utensils, User, Settings, LogOut, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,12 +19,12 @@ const Header = () => {
     <header className="bg-white shadow-sm border-b border-gray-100">
       <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="bg-blue-600 p-2 rounded-xl">
-            <Pill className="w-6 h-6 text-white" />
+          <div className="bg-green-600 p-2 rounded-xl">
+            <Utensils className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Flikt</h1>
-            <p className="text-sm text-gray-500">Your medication guardian</p>
+            <h1 className="text-xl font-bold text-gray-900">NutriGuard</h1>
+            <p className="text-sm text-gray-500">Food-Medication Safety</p>
           </div>
         </div>
         <div className="flex items-center space-x-4">
