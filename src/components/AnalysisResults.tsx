@@ -67,15 +67,50 @@ const AnalysisResults = ({ result, onNewAnalysis }: AnalysisResultsProps) => {
               </div>
             </div>
             <div className="text-right">
-              <div className={`text-3xl font-bold px-4 py-2 rounded-lg border ${getScoreColor(result.compatibilityScore)}`}>
-                {result.compatibilityScore}
-              </div>
-              <p className="text-sm text-gray-600 mt-1">Compatibility Score</p>
+              {result.compatibilityScore !== null ? (
+                <>
+                  <div className={`text-3xl font-bold px-4 py-2 rounded-lg border ${getScoreColor(result.compatibilityScore)}`}>
+                    {result.compatibilityScore}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">Compatibility Score</p>
+                </>
+              ) : (
+                <div className="text-3xl font-bold px-4 py-2 rounded-lg border bg-gray-50 text-gray-400">
+                  N/A
+                </div>
+              )}
               {getInteractionBadge(result.interactionLevel)}
             </div>
           </div>
         </CardHeader>
       </Card>
+
+      {/* No Medications Alert */}
+      {result.userMedications.length === 0 && (
+        <Card className="bg-yellow-50 border-yellow-200">
+          <CardHeader>
+            <CardTitle className="text-yellow-800">No Medications Added</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-yellow-700 mb-4">
+              To get personalized food-medication interaction analysis and compatibility scores, 
+              please add your current medications first.
+            </p>
+            <Button 
+              onClick={() => {
+                const navButtons = document.querySelectorAll('[data-tab="medications"]');
+                if (navButtons.length > 0) {
+                  (navButtons[0] as HTMLButtonElement).click();
+                }
+              }}
+              variant="outline" 
+              className="text-yellow-800 border-yellow-300 hover:bg-yellow-100"
+            >
+              Add Medications Now
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Your Medications */}
       {result.userMedications.length > 0 && (

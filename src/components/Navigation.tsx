@@ -24,6 +24,7 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
         
         <button
           onClick={() => onTabChange('medications')}
+          data-tab="medications"
           className={`flex flex-col items-center space-y-1 px-4 py-3 rounded-xl transition-all duration-200 ${
             activeTab === 'medications' 
               ? 'bg-blue-50 text-blue-600' 
