@@ -38,7 +38,14 @@ serve(async (req) => {
     const hfToken = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
     if (!hfToken) {
       console.error('Hugging Face token not found in environment');
-      throw new Error('Hugging Face token not configured');
+      return new Response(JSON.stringify({ 
+        error: 'Configuration error', 
+        details: 'Hugging Face API token not configured. Please set up your token in Supabase secrets.',
+        timestamp: new Date().toISOString()
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     console.log('Hugging Face token found');
 
@@ -86,6 +93,32 @@ serve(async (req) => {
       bytes[i] = binaryString.charCodeAt(i);
     }
     const imageBlob = new Blob([bytes], { type: 'image/jpeg' });
+
+    // Test response first to ensure function works
+    if (!hfToken.startsWith('hf_')) {
+      console.log('Creating test response - invalid token format');
+      const analysisResult = {
+        name: "Test Medication (Demo)",
+        ingredients: ["Demo Active Ingredient"],
+        warnings: hasProfileData 
+          ? [`Please configure your Hugging Face token. Your allergies: ${allergies.join(', ')}`]
+          : ["Please configure your Hugging Face token for full analysis"],
+        allergenRisk: "medium" as const,
+        recommendations: [
+          "Set up Hugging Face token for real analysis",
+          "This is a demo response"
+        ],
+        hasUserProfile: hasProfileData,
+        timestamp: new Date().toISOString(),
+        note: "Demo response - configure Hugging Face token for real analysis"
+      };
+      
+      console.log('Returning test analysis result');
+      return new Response(JSON.stringify(analysisResult), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
 
     // Use Hugging Face for image analysis
     // First, get image description using BLIP

@@ -194,7 +194,7 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
           
           // Handle specific error types
           if (error.message?.includes('non-2xx status code')) {
-            errorMessage = 'The analysis service is currently unavailable. Please try again later.';
+            errorMessage = 'Analysis service error. Please ensure your Hugging Face token is configured properly.';
           } else if (error.message?.includes('timeout')) {
             errorMessage = 'Analysis timed out. Please try with a smaller image.';
           } else if (error.message?.includes('network')) {
