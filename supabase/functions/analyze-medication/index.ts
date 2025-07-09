@@ -272,17 +272,33 @@ serve(async (req) => {
       analysisResult.compatibilityScore = 75; // Default neutral score for identified products
     }
 
-    // Add positive feedback for safe combinations
-    if (hasMedications && analysisResult.interactionLevel === 'positive') {
-      analysisResult.recommendations = [
-        `Great choice! This food may actually support your medication therapy.`,
-        ...(analysisResult.recommendations || [])
-      ];
-    } else if (hasMedications && analysisResult.interactionLevel === 'neutral' && analysisResult.compatibilityScore > 80) {
-      analysisResult.recommendations = [
-        `This food appears safe to consume with your current medications.`,
-        ...(analysisResult.recommendations || [])
-      ];
+    // Add enhanced feedback based on compatibility score
+    if (hasMedications && analysisResult.compatibilityScore !== null) {
+      const score = analysisResult.compatibilityScore;
+      const productName = analysisResult.productName;
+      
+      if (score >= 80) {
+        // Highly compatible - green zone
+        analysisResult.recommendations = [
+          `Excellent choice! This ${productName.toLowerCase()} is highly compatible with your medications and may even provide beneficial nutrients that support your treatment.`,
+          `Fun fact: Many foods in this category contain antioxidants and nutrients that can help reduce inflammation and support overall health while taking medications.`,
+          ...(analysisResult.recommendations || [])
+        ];
+      } else if (score >= 60) {
+        // Moderately compatible - yellow zone
+        analysisResult.recommendations = [
+          `This ${productName.toLowerCase()} is generally okay with your medications, but there are some considerations to keep in mind for optimal results.`,
+          `Consider alternatives like leafy greens, lean proteins, or whole grains which typically score higher for medication compatibility.`,
+          ...(analysisResult.recommendations || [])
+        ];
+      } else {
+        // Low compatibility - red zone
+        analysisResult.recommendations = [
+          `This ${productName.toLowerCase()} may interfere with your medication effectiveness or cause unwanted interactions.`,
+          `Better alternatives include fresh fruits (like berries or apples), vegetables, or foods that don't compete with medication absorption.`,
+          ...(analysisResult.recommendations || [])
+        ];
+      }
     }
 
     // Add metadata

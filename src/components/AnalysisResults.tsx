@@ -79,7 +79,6 @@ const AnalysisResults = ({ result, onNewAnalysis }: AnalysisResultsProps) => {
                   N/A
                 </div>
               )}
-              {getInteractionBadge(result.interactionLevel)}
             </div>
           </div>
         </CardHeader>
