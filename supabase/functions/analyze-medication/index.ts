@@ -131,7 +131,7 @@ serve(async (req) => {
 
     if (imageData) {
       analysisPrompt = `Analyze this food/product image for potential interactions with these medications: ${medicationList}. 
-         IMPORTANT: If you cannot clearly identify what food or beverage this is, respond with productName: "Unable to identify food/beverage" and compatibilityScore: null.
+         IMPORTANT: If you cannot clearly identify what food or beverage this is, respond with productName: "Sorry, we couldn't catch that" and compatibilityScore: null.
          If you can identify it, check for ingredients that could interact with these medications.
          Consider: Will this food affect medication absorption? Could it worsen side effects? Could it interfere with efficacy?
          Return ONLY valid JSON with: productName, compatibilityScore (0-100 or null if unidentifiable), interactionLevel (positive/neutral/negative), warnings (array), recommendations (array).`;
@@ -248,8 +248,12 @@ serve(async (req) => {
     if (!Array.isArray(analysisResult.recommendations)) {
       analysisResult.recommendations = [analysisResult.recommendations].filter(Boolean);
     }
-    if (typeof analysisResult.compatibilityScore !== 'number') {
-      analysisResult.compatibilityScore = 75; // Default neutral score
+    
+    // Only assign default score if product was identified and score is not a number
+    // Don't assign score if product couldn't be identified
+    if (typeof analysisResult.compatibilityScore !== 'number' && 
+        analysisResult.productName !== "Sorry, we couldn't catch that") {
+      analysisResult.compatibilityScore = 75; // Default neutral score for identified products
     }
 
     // Add positive feedback for safe combinations
