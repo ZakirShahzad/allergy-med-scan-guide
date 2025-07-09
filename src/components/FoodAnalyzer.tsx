@@ -72,14 +72,21 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
   };
 
   const startCamera = async () => {
+    console.log('Starting camera...');
     try {
+      console.log('Requesting camera permissions...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'environment' } 
       });
+      console.log('Camera stream obtained:', mediaStream);
       setStream(mediaStream);
       setShowCamera(true);
+      console.log('showCamera set to true');
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        console.log('Video element set with stream');
+      } else {
+        console.log('Video ref is null');
       }
     } catch (error) {
       console.error('Camera access error:', error);
