@@ -56,15 +56,33 @@ serve(async (req) => {
     // Always return demo response if token is missing
     if (!openaiApiKey) {
       console.log('Creating demo response - OpenAI API key not configured');
+      
+      if (!hasMedications) {
+        const analysisResult = {
+          productName: productName || "Unknown Product",
+          compatibilityScore: null,
+          interactionLevel: "neutral" as const,
+          warnings: [],
+          recommendations: [
+            "Add your current medications to get personalized food-medication interaction analysis"
+          ],
+          userMedications: [],
+          timestamp: new Date().toISOString(),
+          note: "No medications to analyze interactions with"
+        };
+        
+        return new Response(JSON.stringify(analysisResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        });
+      }
+      
       const analysisResult = {
         productName: productName || "Unknown Product",
         compatibilityScore: 75,
         interactionLevel: "neutral" as const,
-        warnings: hasMedications 
-          ? [`Unable to analyze interactions with your ${userMedications.length} medication(s) without API access`]
-          : ["No medications in your profile to check interactions"],
+        warnings: [`Unable to analyze interactions with your ${userMedications.length} medication(s) - API access required`],
         recommendations: [
-          "Add your current medications to get personalized analysis",
           "Consult with a pharmacist about food-drug interactions"
         ],
         userMedications: userMedications.map(med => med.medication_name),
@@ -90,21 +108,37 @@ serve(async (req) => {
 
     let analysisPrompt;
     
+    if (!hasMedications) {
+      // No medications to analyze against, return early
+      const analysisResult = {
+        productName: productName || "Food or beverage from image",
+        compatibilityScore: null,
+        interactionLevel: "neutral" as const,
+        warnings: [],
+        recommendations: [
+          "Add your current medications to get personalized food-medication interaction analysis"
+        ],
+        userMedications: [],
+        timestamp: new Date().toISOString(),
+        note: "No medications to analyze interactions with"
+      };
+      
+      return new Response(JSON.stringify(analysisResult), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
+
     if (imageData) {
-      analysisPrompt = hasMedications 
-        ? `Analyze this food/product image for potential interactions with these medications: ${medicationList}. 
-           Identify the product, check for ingredients that could interact with these medications.
-           Consider: Will this food affect medication absorption? Could it worsen side effects? Could it interfere with efficacy?
-           Return ONLY valid JSON with: productName, compatibilityScore (0-100), interactionLevel (positive/neutral/negative), warnings (array), recommendations (array).`
-        : `Analyze this food/product image. Identify the product and provide general nutritional information.
-           Return ONLY valid JSON with: productName, compatibilityScore (75), interactionLevel ("neutral"), warnings (array), recommendations (array).`;
+      analysisPrompt = `Analyze this food/product image for potential interactions with these medications: ${medicationList}. 
+         IMPORTANT: If you cannot clearly identify what food or beverage this is, respond with productName: "Unable to identify food/beverage" and compatibilityScore: null.
+         If you can identify it, check for ingredients that could interact with these medications.
+         Consider: Will this food affect medication absorption? Could it worsen side effects? Could it interfere with efficacy?
+         Return ONLY valid JSON with: productName, compatibilityScore (0-100 or null if unidentifiable), interactionLevel (positive/neutral/negative), warnings (array), recommendations (array).`;
     } else {
-      analysisPrompt = hasMedications 
-        ? `Analyze the food/product "${productName}" for potential interactions with these medications: ${medicationList}.
-           Consider: Will this food affect medication absorption? Could it worsen side effects? Could it interfere with efficacy?
-           Return ONLY valid JSON with: productName, compatibilityScore (0-100), interactionLevel (positive/neutral/negative), warnings (array), recommendations (array).`
-        : `Analyze the food/product "${productName}". Provide general nutritional information.
-           Return ONLY valid JSON with: productName, compatibilityScore (75), interactionLevel ("neutral"), warnings (array), recommendations (array).`;
+      analysisPrompt = `Analyze the food/product "${productName}" for potential interactions with these medications: ${medicationList}.
+         Consider: Will this food affect medication absorption? Could it worsen side effects? Could it interfere with efficacy?
+         Return ONLY valid JSON with: productName, compatibilityScore (0-100), interactionLevel (positive/neutral/negative), warnings (array), recommendations (array).`;
     }
 
     let analysisResult;
@@ -182,17 +216,17 @@ serve(async (req) => {
       
       // Create fallback response when API fails
       analysisResult = {
-        productName: productName || "Unknown Product",
-        compatibilityScore: 50,
+        productName: "Unable to analyze at this time",
+        compatibilityScore: null,
         interactionLevel: "neutral" as const,
-        warnings: ["Unable to analyze food-medication interactions due to API error"],
+        warnings: [],
         recommendations: [
-          "Try again later or consult with a pharmacist",
-          "Review your medications with a healthcare provider"
+          "Please try again later",
+          "Consult with a pharmacist about food-drug interactions"
         ],
         userMedications: userMedications.map(med => med.medication_name),
         timestamp: new Date().toISOString(),
-        note: "API temporarily unavailable - this is a fallback response"
+        note: "Analysis temporarily unavailable"
       };
       
       return new Response(JSON.stringify(analysisResult), {

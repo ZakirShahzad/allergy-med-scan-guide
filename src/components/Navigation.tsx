@@ -1,9 +1,9 @@
 
-import { Utensils, Pill, CreditCard } from 'lucide-react';
+import { Utensils, Pill } from 'lucide-react';
 
 interface NavigationProps {
-  activeTab: 'analyzer' | 'medications' | 'billing';
-  onTabChange: (tab: 'analyzer' | 'medications' | 'billing') => void;
+  activeTab: 'analyzer' | 'medications';
+  onTabChange: (tab: 'analyzer' | 'medications') => void;
 }
 
 const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
@@ -32,18 +32,6 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
         >
           <Pill className="w-6 h-6" />
           <span className="text-xs font-medium">Medications</span>
-        </button>
-        
-        <button
-          onClick={() => onTabChange('billing')}
-          className={`flex flex-col items-center space-y-1 px-4 py-3 rounded-xl transition-all duration-200 ${
-            activeTab === 'billing' 
-              ? 'bg-purple-50 text-purple-600' 
-              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-          }`}
-        >
-          <CreditCard className="w-6 h-6" />
-          <span className="text-xs font-medium">Billing</span>
         </button>
       </div>
     </nav>

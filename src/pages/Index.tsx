@@ -8,12 +8,12 @@ import Navigation from '@/components/Navigation';
 import FoodAnalyzer from '@/components/FoodAnalyzer';
 import AnalysisResults from '@/components/AnalysisResults';
 import MedicationManager from '@/components/MedicationManager';
-import SubscriptionStatus from '@/components/SubscriptionStatus';
+
 
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'analyzer' | 'medications' | 'billing'>('analyzer');
+  const [activeTab, setActiveTab] = useState<'analyzer' | 'medications'>('analyzer');
   const [analysisResult, setAnalysisResult] = useState<any>(null);
 
   useEffect(() => {
@@ -63,16 +63,6 @@ const Index = () => {
         )}
 
         {activeTab === 'medications' && <MedicationManager />}
-        
-        {activeTab === 'billing' && (
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Subscription & Billing</h1>
-              <p className="text-gray-600">Manage your subscription and view usage statistics</p>
-            </div>
-            <SubscriptionStatus />
-          </div>
-        )}
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white">
