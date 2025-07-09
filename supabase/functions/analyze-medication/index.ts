@@ -35,21 +35,7 @@ serve(async (req) => {
       throw new Error('Invalid image format');
     }
 
-    const hfToken = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
-    if (!hfToken) {
-      console.error('Hugging Face token not found in environment');
-      return new Response(JSON.stringify({ 
-        error: 'Configuration error', 
-        details: 'Hugging Face API token not configured. Please set up your token in Supabase secrets.',
-        timestamp: new Date().toISOString()
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    console.log('Hugging Face token found');
-
-    // Initialize Supabase client
+    // Initialize Supabase client first to get user profile
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -74,6 +60,38 @@ serve(async (req) => {
     const medicalConditions = profile?.medical_conditions || [];
     const hasProfileData = allergies.length > 0 || medicalConditions.length > 0;
 
+    const hfToken = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
+    
+    // Always return demo response if token is missing or invalid
+    if (!hfToken || !hfToken.startsWith('hf_')) {
+      console.log('Creating demo response - token not configured or invalid');
+      const analysisResult = {
+        name: "Demo Medication Analysis",
+        ingredients: hasProfileData 
+          ? ["Demo Active Ingredient", "Demo Inactive Ingredient"]
+          : ["Demo Active Ingredient"],
+        warnings: hasProfileData 
+          ? [`Configure your Hugging Face token for real analysis. Your allergies: ${allergies.join(', ')}`]
+          : ["Configure your Hugging Face token for personalized analysis"],
+        allergenRisk: "medium" as const,
+        recommendations: [
+          "Set up Hugging Face token in Supabase secrets for real analysis",
+          "This is a demo response to show the interface"
+        ],
+        hasUserProfile: hasProfileData,
+        timestamp: new Date().toISOString(),
+        note: "Demo response - configure Hugging Face token for real analysis"
+      };
+      
+      console.log('Returning demo analysis result');
+      return new Response(JSON.stringify(analysisResult), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
+    
+    console.log('Hugging Face token found and valid');
+
     // Create optimized system prompt
     const systemPrompt = hasProfileData 
       ? `You are a medical assistant analyzing medication images. Extract the medication name, active ingredients, and provide safety analysis based on user allergies: ${allergies.join(', ')} and medical conditions: ${medicalConditions.join(', ')}. Return ONLY valid JSON with: name, ingredients (array), warnings (array), allergenRisk (low/medium/high), and recommendations (array).`
@@ -94,31 +112,6 @@ serve(async (req) => {
     }
     const imageBlob = new Blob([bytes], { type: 'image/jpeg' });
 
-    // Test response first to ensure function works
-    if (!hfToken.startsWith('hf_')) {
-      console.log('Creating test response - invalid token format');
-      const analysisResult = {
-        name: "Test Medication (Demo)",
-        ingredients: ["Demo Active Ingredient"],
-        warnings: hasProfileData 
-          ? [`Please configure your Hugging Face token. Your allergies: ${allergies.join(', ')}`]
-          : ["Please configure your Hugging Face token for full analysis"],
-        allergenRisk: "medium" as const,
-        recommendations: [
-          "Set up Hugging Face token for real analysis",
-          "This is a demo response"
-        ],
-        hasUserProfile: hasProfileData,
-        timestamp: new Date().toISOString(),
-        note: "Demo response - configure Hugging Face token for real analysis"
-      };
-      
-      console.log('Returning test analysis result');
-      return new Response(JSON.stringify(analysisResult), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      });
-    }
 
     // Use Hugging Face for image analysis
     // First, get image description using BLIP
