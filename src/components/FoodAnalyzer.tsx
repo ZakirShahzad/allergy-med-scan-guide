@@ -82,12 +82,16 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
       setStream(mediaStream);
       setShowCamera(true);
       console.log('showCamera set to true');
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        console.log('Video element set with stream');
-      } else {
-        console.log('Video ref is null');
-      }
+      
+      // Use setTimeout to ensure the video element is rendered
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          console.log('Video element set with stream');
+        } else {
+          console.log('Video ref is still null after timeout');
+        }
+      }, 100);
     } catch (error) {
       console.error('Camera access error:', error);
       toast({
