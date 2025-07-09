@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Camera, Upload, Search, Scan, Loader2 } from 'lucide-react';
+import { Camera, Upload, Search, Scan, Loader2, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AnalysisResult {
@@ -28,6 +28,10 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
   const [loading, setLoading] = useState(false);
   const [productName, setProductName] = useState('');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,16 +71,48 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
     }
   };
 
-  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const imageData = event.target?.result as string;
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      setStream(mediaStream);
+      setShowCamera(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (error) {
+      console.error('Camera access error:', error);
+      toast({
+        title: "Camera Error",
+        description: "Unable to access camera. Please check permissions.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0);
+        const imageData = canvas.toDataURL('image/jpeg');
         setCapturedImage(imageData);
+        stopCamera();
         analyzeProduct('photo', imageData);
-      };
-      reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -142,35 +178,53 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
         </TabsList>
 
         <TabsContent value="camera" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Camera className="w-5 h-5 mr-2" />
-                Take Photo
-              </CardTitle>
-              <CardDescription>
-                Capture a photo of the food or product for analysis
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleCameraCapture}
-                className="hidden"
-              />
-              <Button 
-                onClick={() => cameraInputRef.current?.click()}
-                className="w-full py-8 text-lg"
-                size="lg"
-              >
-                <Camera className="w-6 h-6 mr-3" />
-                Open Camera
-              </Button>
-            </CardContent>
-          </Card>
+          {!showCamera ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Camera className="w-5 h-5 mr-2" />
+                  Take Photo
+                </CardTitle>
+                <CardDescription>
+                  Capture a photo of the food or product for analysis
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={startCamera}
+                  className="w-full py-8 text-lg"
+                  size="lg"
+                >
+                  <Camera className="w-6 h-6 mr-3" />
+                  Open Camera
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Camera</CardTitle>
+                <Button variant="outline" size="sm" onClick={stopCamera}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    className="w-full rounded-lg"
+                  />
+                  <canvas ref={canvasRef} className="hidden" />
+                </div>
+                <Button onClick={capturePhoto} className="w-full" size="lg">
+                  <Camera className="w-5 h-5 mr-2" />
+                  Capture & Analyze
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="upload" className="space-y-4">
