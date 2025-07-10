@@ -277,15 +277,28 @@ const Billing = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {plans.map((plan) => {
               const Icon = plan.icon;
+              const isCurrentPlan = subscriptionData.subscribed && 
+                ((plan.id === 'basic' && subscriptionData.subscription_tier === 'Basic') ||
+                 (plan.id === 'premium' && subscriptionData.subscription_tier === 'Premium') ||
+                 (plan.id === 'family' && subscriptionData.subscription_tier === 'Family'));
+              
               return (
                 <Card 
                   key={plan.id} 
-                  className={`relative ${plan.popular ? 'border-blue-500 border-2 shadow-lg' : ''}`}
+                  className={`relative ${plan.popular ? 'border-blue-500 border-2 shadow-lg' : ''} ${isCurrentPlan ? 'border-green-500 border-2 bg-green-50' : ''}`}
                 >
-                  {plan.badge && (
+                  {plan.badge && !isCurrentPlan && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <Badge variant="default" className="bg-blue-600 text-white">
                         {plan.badge}
+                      </Badge>
+                    </div>
+                  )}
+                  
+                  {isCurrentPlan && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <Badge variant="default" className="bg-green-600 text-white">
+                        Current Plan
                       </Badge>
                     </div>
                   )}
@@ -315,24 +328,34 @@ const Billing = () => {
                       ))}
                     </ul>
                     
-                    <Button 
-                      onClick={() => handleSubscribe(plan.id)}
-                      disabled={loading === plan.id}
-                      className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
-                      variant={plan.popular ? 'default' : 'outline'}
-                    >
-                      {loading === plan.id ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Processing...
-                        </div>
-                      ) : (
-                        <>
-                          <CreditCard className="w-4 h-4 mr-2" />
-                          Subscribe to {plan.name}
-                        </>
-                      )}
-                    </Button>
+                    {isCurrentPlan ? (
+                      <Button 
+                        variant="outline"
+                        className="w-full"
+                        disabled
+                      >
+                        Current Plan
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={() => handleSubscribe(plan.id)}
+                        disabled={loading === plan.id}
+                        className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                        variant={plan.popular ? 'default' : 'outline'}
+                      >
+                        {loading === plan.id ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Processing...
+                          </div>
+                        ) : (
+                          <>
+                            <CreditCard className="w-4 h-4 mr-2" />
+                            Subscribe to {plan.name}
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               );

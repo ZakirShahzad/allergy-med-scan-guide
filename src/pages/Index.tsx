@@ -12,7 +12,7 @@ import SubscriptionStatus from '@/components/SubscriptionStatus';
 
 
 const Index = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshSubscription } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'analyzer' | 'medications'>('analyzer');
   const [analysisResult, setAnalysisResult] = useState<any>(null);
@@ -22,6 +22,17 @@ const Index = () => {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    // Check for checkout success and refresh subscription
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('checkout') === 'success') {
+      // Remove the checkout parameter from URL
+      window.history.replaceState({}, '', '/');
+      // Refresh subscription data after successful checkout
+      refreshSubscription();
+    }
+  }, [refreshSubscription]);
 
   const handleAnalysisComplete = (result: any) => {
     setAnalysisResult(result);

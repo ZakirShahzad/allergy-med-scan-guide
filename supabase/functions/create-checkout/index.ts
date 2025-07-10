@@ -80,8 +80,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/billing?success=true`,
-      cancel_url: `${req.headers.get("origin")}/billing?canceled=true`,
+      success_url: `${req.headers.get("origin")}/?checkout=success`,
+      cancel_url: `${req.headers.get("origin")}/?checkout=canceled`,
       metadata: {
         user_id: user.id,
         plan_id: planId,
