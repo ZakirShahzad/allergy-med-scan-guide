@@ -236,10 +236,10 @@ const Billing = () => {
 
           {/* Current Subscription Status */}
           {subscriptionStatus.subscribed && (
-            <Card className="border-green-200 bg-green-50">
+            <Card className="border-success bg-success-lighter">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Check className="w-5 h-5 text-green-600" />
+                  <Check className="w-5 h-5 text-success" />
                   Current Subscription
                 </CardTitle>
               </CardHeader>
@@ -300,7 +300,7 @@ const Billing = () => {
                     <ul className="space-y-3 mb-6">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-center gap-2">
-                          <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+                          <Check className="w-4 h-4 text-success flex-shrink-0" />
                           <span className="text-sm text-gray-700">{feature}</span>
                         </li>
                       ))}
@@ -385,23 +385,23 @@ const Billing = () => {
           </div>
 
           {/* Trust Indicators */}
-          <Card className="mt-8">
+          <Card className="mt-8 border-success bg-success-lighter">
             <CardContent className="pt-6">
               <div className="text-center">
                 <h3 className="text-lg font-semibold mb-4">Trusted by Healthcare Professionals</h3>
                 <div className="flex justify-center items-center gap-8 text-gray-600">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">99.9%</div>
+                    <div className="text-2xl font-bold text-success">99.9%</div>
                     <div className="text-sm">Uptime</div>
                   </div>
                   <Separator orientation="vertical" className="h-8" />
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">256-bit</div>
+                    <div className="text-2xl font-bold text-success">256-bit</div>
                     <div className="text-sm">SSL Encryption</div>
                   </div>
                   <Separator orientation="vertical" className="h-8" />
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">HIPAA</div>
+                    <div className="text-2xl font-bold text-success">HIPAA</div>
                     <div className="text-sm">Compliant</div>
                   </div>
                 </div>

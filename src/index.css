@@ -23,6 +23,12 @@ All colors MUST be HSL.
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
+    --success: 142 76% 36%;
+    --success-foreground: 210 40% 98%;
+    
+    --success-light: 142 69% 58%;
+    --success-lighter: 142 52% 96%;
+
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
@@ -79,6 +85,12 @@ All colors MUST be HSL.
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
+
+    --success: 142 69% 58%;
+    --success-foreground: 210 40% 98%;
+    
+    --success-light: 142 69% 58%;
+    --success-lighter: 142 52% 15%;
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
