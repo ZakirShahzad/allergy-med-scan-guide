@@ -1,29 +1,77 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Crown, Shield, Users, Zap, CreditCard, AlertCircle } from 'lucide-react';
+import { Crown, Shield, Users, Zap, CreditCard, AlertCircle, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface SubscriptionStatusProps {
   compact?: boolean;
 }
 
+interface SubscriptionData {
+  scans_used_this_month: number;
+  subscribed: boolean;
+  subscription_tier: string | null;
+  subscription_end: string | null;
+}
+
 const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  // Mock subscription data - will be replaced with real data from context
-  const [subscriptionData] = useState({
-    subscribed: false,
-    plan: null,
-    endDate: null,
-    scansUsed: 12,
-    scansLimit: 50,
-    isNearLimit: false,
-  });
+  const { user } = useAuth();
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const FREE_SCAN_LIMIT = 5;
+
+  const fetchSubscriptionData = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('subscribers')
+        .select('scans_used_this_month, subscribed, subscription_tier, subscription_end')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching subscription data:', error);
+        // If no record exists, create default
+        setSubscriptionData({
+          scans_used_this_month: 0,
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null
+        });
+        return;
+      }
+
+      if (data) {
+        setSubscriptionData(data);
+      } else {
+        // No record exists, user has default free account
+        setSubscriptionData({
+          scans_used_this_month: 0,
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching subscription data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSubscriptionData();
+  }, [user]);
 
   const planIcons = {
     basic: Shield,
@@ -31,20 +79,41 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
     family: Users,
   };
 
-  const usagePercentage = (subscriptionData.scansUsed / subscriptionData.scansLimit) * 100;
-  const isNearLimit = usagePercentage >= 80;
+  if (loading || !subscriptionData) {
+    return compact ? (
+      <div className="animate-pulse flex items-center gap-2">
+        <div className="h-6 bg-gray-200 rounded w-20"></div>
+        <div className="h-6 bg-gray-200 rounded w-16"></div>
+      </div>
+    ) : (
+      <Card>
+        <CardContent className="p-6">
+          <div className="animate-pulse space-y-3">
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-2 bg-gray-200 rounded"></div>
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const scansUsed = subscriptionData.scans_used_this_month;
+  const scansRemaining = subscriptionData.subscribed ? -1 : Math.max(0, FREE_SCAN_LIMIT - scansUsed);
+  const usagePercentage = subscriptionData.subscribed ? 0 : (scansUsed / FREE_SCAN_LIMIT) * 100;
+  const isNearLimit = !subscriptionData.subscribed && usagePercentage >= 80;
 
   if (compact) {
     return (
       <div className="flex items-center gap-2">
         {subscriptionData.subscribed ? (
           <Badge variant="default" className="bg-green-600 text-white">
-            {subscriptionData.plan} Plan
+            {subscriptionData.subscription_tier || 'Premium'} Plan
           </Badge>
         ) : (
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">
-              {subscriptionData.scansUsed}/{subscriptionData.scansLimit} scans
+              {scansUsed}/{FREE_SCAN_LIMIT} scans
             </Badge>
             {isNearLimit && (
               <AlertCircle className="w-4 h-4 text-orange-500" />
@@ -81,7 +150,9 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
         </CardTitle>
         <CardDescription>
           {subscriptionData.subscribed 
-            ? `Your subscription renews on ${subscriptionData.endDate}`
+            ? subscriptionData.subscription_end 
+              ? `Your subscription renews on ${new Date(subscriptionData.subscription_end).toLocaleDateString()}`
+              : 'You have an active premium subscription'
             : 'Upgrade to unlock unlimited scans and advanced features'
           }
         </CardDescription>
@@ -93,7 +164,7 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
               <div className="flex justify-between text-sm">
                 <span>Scans this month</span>
                 <span className="font-medium">
-                  {subscriptionData.scansUsed} / {subscriptionData.scansLimit}
+                  {scansUsed} / {FREE_SCAN_LIMIT}
                 </span>
               </div>
               <Progress 
@@ -130,6 +201,16 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
                 Compare Plans
               </Button>
             </div>
+            
+            <Button 
+              onClick={fetchSubscriptionData}
+              variant="ghost" 
+              size="sm"
+              className="w-full"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh Status
+            </Button>
           </div>
         )}
         

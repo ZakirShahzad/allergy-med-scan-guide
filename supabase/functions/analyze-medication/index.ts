@@ -49,6 +49,36 @@ serve(async (req) => {
     );
     console.log('Supabase client initialized with user auth');
 
+    // Check scan usage first
+    console.log('Checking scan usage...');
+    const { data: scanCheck, error: scanError } = await supabase
+      .rpc('increment_scan_usage', {
+        p_user_id: userId,
+        p_product_identified: false // Don't increment yet, just check
+      });
+
+    if (scanError) {
+      console.error('Scan usage check error:', scanError);
+      throw new Error(`Failed to check scan usage: ${scanError.message}`);
+    }
+
+    const { scans_remaining, is_subscribed } = scanCheck[0];
+    console.log('Scan usage check result:', { scans_remaining, is_subscribed });
+
+    // If user has no scans left and is not subscribed, return limit message
+    if (!is_subscribed && scans_remaining <= 0) {
+      console.log('User has reached scan limit');
+      return new Response(JSON.stringify({
+        error: 'scan_limit_reached',
+        message: 'You have reached your monthly scan limit. Please upgrade to continue scanning.',
+        scans_remaining: 0,
+        is_subscribed: false
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 429
+      });
+    }
+
     // Get user's current medications
     console.log('Fetching user medications...');
     const { data: medications, error: medicationsError } = await supabase
@@ -334,6 +364,27 @@ Return ONLY valid JSON with:
     }
 
     // Keep AI-generated recommendations as they are more contextual and detailed
+
+    // Check if product was successfully identified
+    const productIdentified = analysisResult.productName && 
+                              analysisResult.productName !== "Sorry, we couldn't catch that" &&
+                              analysisResult.productName !== "Unable to analyze at this time";
+
+    // Increment scan usage if product was identified
+    if (productIdentified) {
+      console.log('Product was identified, incrementing scan usage');
+      try {
+        await supabase.rpc('increment_scan_usage', {
+          p_user_id: userId,
+          p_product_identified: true
+        });
+      } catch (incrementError) {
+        console.error('Failed to increment scan usage:', incrementError);
+        // Don't fail the request if increment fails
+      }
+    } else {
+      console.log('Product was not identified, not incrementing scan usage');
+    }
 
     // Add metadata
     analysisResult.userMedications = userMedications.map(med => med.medication_name);

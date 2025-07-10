@@ -56,7 +56,18 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle scan limit reached specifically
+        if (error.status === 429 && data?.error === 'scan_limit_reached') {
+          toast({
+            title: "Scan Limit Reached",
+            description: data.message || "You have reached your monthly scan limit. Please upgrade to continue scanning.",
+            variant: "destructive"
+          });
+          return;
+        }
+        throw error;
+      }
 
       onAnalysisComplete(data);
     } catch (error) {

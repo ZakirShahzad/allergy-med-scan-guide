@@ -8,6 +8,7 @@ import Navigation from '@/components/Navigation';
 import FoodAnalyzer from '@/components/FoodAnalyzer';
 import AnalysisResults from '@/components/AnalysisResults';
 import MedicationManager from '@/components/MedicationManager';
+import SubscriptionStatus from '@/components/SubscriptionStatus';
 
 
 const Index = () => {
@@ -52,17 +53,21 @@ const Index = () => {
       <Header />
       
       <main className="max-w-4xl mx-auto px-4 py-8 pb-24">
-        {activeTab === 'analyzer' && (
-          <div>
-            {!analysisResult ? (
-              <FoodAnalyzer onAnalysisComplete={handleAnalysisComplete} />
-            ) : (
-              <AnalysisResults result={analysisResult} onNewAnalysis={resetAnalyzer} />
-            )}
-          </div>
-        )}
+        <div className="space-y-6">
+          <SubscriptionStatus />
+          
+          {activeTab === 'analyzer' && (
+            <div>
+              {!analysisResult ? (
+                <FoodAnalyzer onAnalysisComplete={handleAnalysisComplete} />
+              ) : (
+                <AnalysisResults result={analysisResult} onNewAnalysis={resetAnalyzer} />
+              )}
+            </div>
+          )}
 
-        {activeTab === 'medications' && <MedicationManager />}
+          {activeTab === 'medications' && <MedicationManager />}
+        </div>
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white">
