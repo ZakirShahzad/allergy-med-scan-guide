@@ -37,7 +37,7 @@ const Index = () => {
           <div className="bg-green-600 p-3 rounded-xl inline-block mb-4">
             <Utensils className="w-8 h-8 text-white" />
           </div>
-          <div className="text-lg font-semibold text-gray-700">Loading Flikt...</div>
+          <div className="text-lg font-semibold text-gray-700">Loading Flikkt...</div>
         </div>
       </div>
     );

@@ -284,7 +284,7 @@ const ProfileSetup = () => {
           <div>
             <h3 className="font-semibold text-blue-900 mb-2">Complete Setup for Best Results</h3>
             <p className="text-blue-800 text-sm">
-              Fields marked with * are required for Flikt to provide accurate medication guidance and safety alerts.
+              Fields marked with * are required for Flikkt to provide accurate medication guidance and safety alerts.
               Your emergency contact will be notified in case of serious medication interactions.
             </p>
           </div>

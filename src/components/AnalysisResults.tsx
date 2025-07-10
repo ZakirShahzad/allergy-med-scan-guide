@@ -1,4 +1,4 @@
-import { ArrowLeft, AlertTriangle, CheckCircle, XCircle, ShieldCheck, Clock } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, CheckCircle, XCircle, ShieldCheck, Clock, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,8 +7,8 @@ interface AnalysisResult {
   productName: string;
   compatibilityScore: number;
   interactionLevel: 'positive' | 'neutral' | 'negative';
-  warnings: string[];
-  recommendations: string[];
+  pros: string[];
+  cons: string[];
   userMedications: string[];
   timestamp: string;
 }
@@ -130,21 +130,21 @@ const AnalysisResults = ({ result, onNewAnalysis }: AnalysisResultsProps) => {
         </Card>
       )}
 
-      {/* Warnings */}
-      {result.warnings.length > 0 && (
+      {/* Pros */}
+      {result.pros.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center text-amber-700">
-              <AlertTriangle className="w-5 h-5 mr-2" />
-              Important Warnings
+            <CardTitle className="flex items-center text-green-700">
+              <ThumbsUp className="w-5 h-5 mr-2" />
+              Medication Compatibility Pros
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {result.warnings.map((warning, index) => (
-                <div key={index} className="flex items-start space-x-3 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-r-lg">
-                  <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-amber-800">{warning}</span>
+              {result.pros.map((pro, index) => (
+                <div key={index} className="flex items-start space-x-3 p-4 bg-green-50 border-l-4 border-green-400 rounded-r-lg">
+                  <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-green-800">{pro}</span>
                 </div>
               ))}
             </div>
@@ -152,21 +152,21 @@ const AnalysisResults = ({ result, onNewAnalysis }: AnalysisResultsProps) => {
         </Card>
       )}
 
-      {/* Recommendations */}
-      {result.recommendations.length > 0 && result.userMedications.length > 0 && (
+      {/* Cons */}
+      {result.cons.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center text-blue-700">
-              <CheckCircle className="w-5 h-5 mr-2" />
-              Recommendations
+            <CardTitle className="flex items-center text-red-700">
+              <ThumbsDown className="w-5 h-5 mr-2" />
+              Medication Compatibility Concerns
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {result.recommendations.map((recommendation, index) => (
-                <div key={index} className="flex items-start space-x-3 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
-                  <CheckCircle className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-blue-800">{recommendation}</span>
+              {result.cons.map((con, index) => (
+                <div key={index} className="flex items-start space-x-3 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg">
+                  <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-red-800">{con}</span>
                 </div>
               ))}
             </div>

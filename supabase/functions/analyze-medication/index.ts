@@ -78,10 +78,8 @@ serve(async (req) => {
           productName: productName || "Unknown Product",
           compatibilityScore: null,
           interactionLevel: "neutral" as const,
-          warnings: [],
-          recommendations: [
-            "Add your current medications to get personalized food-medication interaction analysis"
-          ],
+          pros: [],
+          cons: [],
           userMedications: [],
           timestamp: new Date().toISOString(),
           note: "No medications to analyze interactions with"
@@ -97,10 +95,8 @@ serve(async (req) => {
         productName: productName || "Unknown Product",
         compatibilityScore: 75,
         interactionLevel: "neutral" as const,
-        warnings: [`Unable to analyze interactions with your ${userMedications.length} medication(s) - API access required`],
-        recommendations: [
-          "Consult with a pharmacist about food-drug interactions"
-        ],
+        pros: ["No known interactions with medications listed"],
+        cons: [`Unable to analyze detailed interactions with your ${userMedications.length} medication(s) - API access required`],
         userMedications: userMedications.map(med => med.medication_name),
         timestamp: new Date().toISOString(),
         note: "Demo response - configure OpenAI API key for real analysis"
@@ -135,10 +131,8 @@ serve(async (req) => {
         productName: productName || "Food or beverage from image",
         compatibilityScore: null,
         interactionLevel: "neutral" as const,
-        warnings: [],
-        recommendations: [
-          "Add your current medications to get personalized food-medication interaction analysis"
-        ],
+        pros: [],
+        cons: ["Add your current medications to get personalized food-medication interaction analysis"],
         userMedications: [],
         timestamp: new Date().toISOString(),
         note: "No medications to analyze interactions with"
@@ -159,29 +153,32 @@ ${detailedMedicationProfile}
 ANALYSIS REQUIREMENTS:
 1. First identify the food/product in the image. If unclear, return productName: "Sorry, we couldn't catch that" and compatibilityScore: null.
 2. For each medication, research and consider:
-   - Known food-drug interactions
+   - Known food-drug interactions based on clinical evidence
    - Effects on medication absorption (timing, bioavailability)
    - Potential for increased/decreased medication effects
    - Risk of side effect amplification
    - Nutritional impact on the medical condition being treated
 3. Consider dosage and frequency when assessing interaction severity
-4. Account for the specific medical purposes when making recommendations
+4. Account for the specific medical purposes when making assessments
+5. Be factual and evidence-based - only mention what is clinically relevant
 
-SCORING CRITERIA:
-- 90-100: Highly beneficial interaction, may enhance treatment
-- 80-89: Safe with potential benefits
-- 70-79: Generally safe, minor considerations
-- 60-69: Caution advised, timing may matter
-- 50-59: Moderate interaction risk
+SCORING CRITERIA (based on medication interaction safety only):
+- 90-100: No interaction concerns, may provide nutritional benefits for condition
+- 80-89: Safe from medication perspective, no significant interactions
+- 70-79: Generally safe, minor timing considerations may apply
+- 60-69: Caution advised, timing or quantity may matter
+- 50-59: Moderate interaction risk, monitoring recommended
 - 30-49: Significant interaction, careful monitoring needed
-- 0-29: High risk, avoid or consult healthcare provider
+- 0-29: High interaction risk, avoid or consult healthcare provider
+
+IMPORTANT: Focus only on medication safety - do not make general health/nutrition judgments.
 
 Return ONLY valid JSON with:
 - productName: string
 - compatibilityScore: number (0-100) or null if unidentifiable
 - interactionLevel: "positive" | "neutral" | "negative"
-- warnings: array of specific, actionable warnings
-- recommendations: array of detailed, personalized recommendations`;
+- pros: array of positive aspects regarding medication interactions
+- cons: array of concerns or precautions regarding medication interactions`;
     } else {
       analysisPrompt = `You are a clinical pharmacist with expertise in food-drug interactions. Analyze the food/product "${productName}" for potential interactions with the following medications:
 
@@ -190,30 +187,32 @@ ${detailedMedicationProfile}
 
 ANALYSIS REQUIREMENTS:
 1. For each medication, research and consider:
-   - Known food-drug interactions with ${productName}
+   - Known food-drug interactions with ${productName} based on clinical evidence
    - Effects on medication absorption (timing, bioavailability)
    - Potential for increased/decreased medication effects
    - Risk of side effect amplification
    - Nutritional impact on the medical condition being treated
 2. Consider dosage and frequency when assessing interaction severity
-3. Account for the specific medical purposes when making recommendations
-4. If the food is unhealthy but medication-compatible, mention this clearly
+3. Account for the specific medical purposes when making assessments
+4. Be factual and evidence-based - only mention what is clinically relevant
 
-SCORING CRITERIA:
-- 90-100: Highly beneficial interaction, may enhance treatment
-- 80-89: Safe with potential benefits
-- 70-79: Generally safe, minor considerations
-- 60-69: Caution advised, timing may matter
-- 50-59: Moderate interaction risk
+SCORING CRITERIA (based on medication interaction safety only):
+- 90-100: No interaction concerns, may provide nutritional benefits for condition
+- 80-89: Safe from medication perspective, no significant interactions
+- 70-79: Generally safe, minor timing considerations may apply
+- 60-69: Caution advised, timing or quantity may matter
+- 50-59: Moderate interaction risk, monitoring recommended
 - 30-49: Significant interaction, careful monitoring needed
-- 0-29: High risk, avoid or consult healthcare provider
+- 0-29: High interaction risk, avoid or consult healthcare provider
+
+IMPORTANT: Focus only on medication safety - do not make general health/nutrition judgments.
 
 Return ONLY valid JSON with:
 - productName: string
 - compatibilityScore: number (0-100)
 - interactionLevel: "positive" | "neutral" | "negative"
-- warnings: array of specific, actionable warnings based on research
-- recommendations: array of detailed, personalized recommendations based on the medication profile`;
+- pros: array of positive aspects regarding medication interactions
+- cons: array of concerns or precautions regarding medication interactions`;
     }
 
     let analysisResult;
@@ -294,8 +293,8 @@ Return ONLY valid JSON with:
         productName: "Unable to analyze at this time",
         compatibilityScore: null,
         interactionLevel: "neutral" as const,
-        warnings: [],
-        recommendations: [
+        pros: [],
+        cons: [
           "Please try again later",
           "Consult with a pharmacist about food-drug interactions"
         ],
@@ -317,11 +316,11 @@ Return ONLY valid JSON with:
     }
     
     // Ensure arrays are arrays and score is valid
-    if (!Array.isArray(analysisResult.warnings)) {
-      analysisResult.warnings = [analysisResult.warnings].filter(Boolean);
+    if (!Array.isArray(analysisResult.pros)) {
+      analysisResult.pros = [analysisResult.pros].filter(Boolean);
     }
-    if (!Array.isArray(analysisResult.recommendations)) {
-      analysisResult.recommendations = [analysisResult.recommendations].filter(Boolean);
+    if (!Array.isArray(analysisResult.cons)) {
+      analysisResult.cons = [analysisResult.cons].filter(Boolean);
     }
     
     // Only assign default score if product was identified and score is not a number
@@ -346,8 +345,8 @@ Return ONLY valid JSON with:
           analysis_type: analysisType,
           compatibility_score: analysisResult.compatibilityScore,
           interaction_level: analysisResult.interactionLevel,
-          warnings: analysisResult.warnings,
-          recommendations: analysisResult.recommendations
+          warnings: analysisResult.cons || [],
+          recommendations: analysisResult.pros || []
         });
       } catch (historyError) {
         console.error('Failed to save analysis history:', historyError);

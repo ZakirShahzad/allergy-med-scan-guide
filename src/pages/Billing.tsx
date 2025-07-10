@@ -142,7 +142,7 @@ const Billing = () => {
             className="gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Flikt
+            Back to Flikkt
           </Button>
         </div>
 

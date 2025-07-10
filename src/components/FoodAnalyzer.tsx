@@ -12,8 +12,8 @@ interface AnalysisResult {
   productName: string;
   compatibilityScore: number;
   interactionLevel: 'positive' | 'neutral' | 'negative';
-  warnings: string[];
-  recommendations: string[];
+  pros: string[];
+  cons: string[];
   userMedications: string[];
   timestamp: string;
 }
