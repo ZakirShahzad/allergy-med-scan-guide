@@ -272,46 +272,7 @@ serve(async (req) => {
       analysisResult.compatibilityScore = 75; // Default neutral score for identified products
     }
 
-    // Add enhanced feedback based on compatibility score
-    if (hasMedications && analysisResult.compatibilityScore !== null) {
-      const score = analysisResult.compatibilityScore;
-      const productName = analysisResult.productName;
-      
-      if (score >= 80) {
-        // Highly compatible - green zone, but check if it's unhealthy
-        const unhealthyKeywords = ['candy', 'soda', 'chips', 'cookies', 'cake', 'donut', 'ice cream', 'chocolate bar', 'energy drink', 'fast food', 'fried', 'processed'];
-        const isUnhealthy = unhealthyKeywords.some(keyword => productName.toLowerCase().includes(keyword));
-        
-        if (isUnhealthy) {
-          analysisResult.recommendations = [
-            `While this ${productName.toLowerCase()} won't interfere with your medications, it's important to note that it's not a healthy food choice.`,
-            `Consider healthier alternatives like fruits, vegetables, whole grains, or lean proteins that are both medication-compatible and nutritionally beneficial.`,
-            `Remember: medication compatibility doesn't equal healthy eating. Your overall nutrition still matters for your health and recovery.`,
-            ...(analysisResult.recommendations || [])
-          ];
-        } else {
-          analysisResult.recommendations = [
-            `Excellent choice! This ${productName.toLowerCase()} is highly compatible with your medications and may even provide beneficial nutrients that support your treatment.`,
-            `Fun fact: Many foods in this category contain antioxidants and nutrients that can help reduce inflammation and support overall health while taking medications.`,
-            ...(analysisResult.recommendations || [])
-          ];
-        }
-      } else if (score >= 60) {
-        // Moderately compatible - yellow zone
-        analysisResult.recommendations = [
-          `This ${productName.toLowerCase()} is generally okay with your medications, but there are some considerations to keep in mind for optimal results.`,
-          `Consider alternatives like leafy greens, lean proteins, or whole grains which typically score higher for medication compatibility.`,
-          ...(analysisResult.recommendations || [])
-        ];
-      } else {
-        // Low compatibility - red zone
-        analysisResult.recommendations = [
-          `This ${productName.toLowerCase()} may interfere with your medication effectiveness or cause unwanted interactions.`,
-          `Better alternatives include fresh fruits (like berries or apples), vegetables, or foods that don't compete with medication absorption.`,
-          ...(analysisResult.recommendations || [])
-        ];
-      }
-    }
+    // Keep AI-generated recommendations as they are more contextual and detailed
 
     // Add metadata
     analysisResult.userMedications = userMedications.map(med => med.medication_name);
