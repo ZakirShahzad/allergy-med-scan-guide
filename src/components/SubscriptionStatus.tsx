@@ -82,7 +82,7 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
       <div className="flex items-center gap-2">
         {subscriptionData.subscribed ? (
           <Badge variant="default" className="bg-green-600 text-white">
-            {subscriptionData.subscription_tier || 'Premium'} Plan
+            {subscriptionData.subscription_tier || 'Basic'} Plan
           </Badge>
         ) : (
           <div className="flex items-center gap-2">
@@ -112,8 +112,14 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
         <CardTitle className="flex items-center gap-2">
           {subscriptionData.subscribed ? (
             <>
-              <Crown className="w-5 h-5 text-yellow-600" />
-              Premium Plan
+              {subscriptionData.subscription_tier === 'Family' ? (
+                <Users className="w-5 h-5 text-blue-600" />
+              ) : subscriptionData.subscription_tier === 'Premium' ? (
+                <Crown className="w-5 h-5 text-yellow-600" />
+              ) : (
+                <Shield className="w-5 h-5 text-green-600" />
+              )}
+              {subscriptionData.subscription_tier || 'Basic'} Plan
             </>
           ) : (
             <>
@@ -126,7 +132,7 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
           {subscriptionData.subscribed 
             ? subscriptionData.subscription_end 
               ? `Your subscription renews on ${new Date(subscriptionData.subscription_end).toLocaleDateString()}`
-              : 'You have an active premium subscription'
+              : `You have an active ${subscriptionData.subscription_tier?.toLowerCase() || 'basic'} subscription`
             : 'Upgrade to unlock unlimited scans and advanced features'
           }
         </CardDescription>

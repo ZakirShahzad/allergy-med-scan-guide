@@ -240,7 +240,7 @@ const Billing = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <p className="font-semibold">{subscriptionData.subscription_tier || 'Premium'} Plan</p>
+                    <p className="font-semibold">{subscriptionData.subscription_tier || 'Basic'} Plan</p>
                     <p className="text-sm text-gray-600">
                       {subscriptionData.subscription_end 
                         ? `Renews on ${new Date(subscriptionData.subscription_end).toLocaleDateString()}`
