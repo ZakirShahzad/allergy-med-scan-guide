@@ -53,7 +53,7 @@ serve(async (req) => {
     console.log('Fetching user medications...');
     const { data: medications, error: medicationsError } = await supabase
       .from('user_medications')
-      .select('medication_name, dosage, frequency, purpose')
+      .select('medication_name, dosage, frequency, purpose, notes')
       .eq('user_id', userId);
 
     if (medicationsError) {
@@ -117,10 +117,15 @@ serve(async (req) => {
     console.log('Calling OpenAI API...');
     console.log('User has medications:', hasMedications);
 
-    // Create the detailed prompt for OpenAI
-    const medicationList = userMedications.map(med => 
-      `${med.medication_name}${med.dosage ? ` (${med.dosage})` : ''}${med.purpose ? ` - for ${med.purpose}` : ''}`
-    ).join(', ');
+    // Create comprehensive medication profile for detailed analysis
+    const detailedMedicationProfile = userMedications.map(med => {
+      let medDetails = `${med.medication_name}`;
+      if (med.dosage) medDetails += ` (${med.dosage})`;
+      if (med.frequency) medDetails += ` taken ${med.frequency}`;
+      if (med.purpose) medDetails += ` for ${med.purpose}`;
+      if (med.notes) medDetails += ` - Additional notes: ${med.notes}`;
+      return medDetails;
+    }).join('\n');
 
     let analysisPrompt;
     
@@ -146,15 +151,69 @@ serve(async (req) => {
     }
 
     if (imageData) {
-      analysisPrompt = `Analyze this food/product image for potential interactions with these medications: ${medicationList}. 
-         IMPORTANT: If you cannot clearly identify what food or beverage this is, respond with productName: "Sorry, we couldn't catch that" and compatibilityScore: null.
-         If you can identify it, check for ingredients that could interact with these medications.
-         Consider: Will this food affect medication absorption? Could it worsen side effects? Could it interfere with efficacy?
-         Return ONLY valid JSON with: productName, compatibilityScore (0-100 or null if unidentifiable), interactionLevel (positive/neutral/negative), warnings (array), recommendations (array).`;
+      analysisPrompt = `You are a clinical pharmacist with expertise in food-drug interactions. Analyze this food/product image for potential interactions with the following medications:
+
+PATIENT MEDICATION PROFILE:
+${detailedMedicationProfile}
+
+ANALYSIS REQUIREMENTS:
+1. First identify the food/product in the image. If unclear, return productName: "Sorry, we couldn't catch that" and compatibilityScore: null.
+2. For each medication, research and consider:
+   - Known food-drug interactions
+   - Effects on medication absorption (timing, bioavailability)
+   - Potential for increased/decreased medication effects
+   - Risk of side effect amplification
+   - Nutritional impact on the medical condition being treated
+3. Consider dosage and frequency when assessing interaction severity
+4. Account for the specific medical purposes when making recommendations
+
+SCORING CRITERIA:
+- 90-100: Highly beneficial interaction, may enhance treatment
+- 80-89: Safe with potential benefits
+- 70-79: Generally safe, minor considerations
+- 60-69: Caution advised, timing may matter
+- 50-59: Moderate interaction risk
+- 30-49: Significant interaction, careful monitoring needed
+- 0-29: High risk, avoid or consult healthcare provider
+
+Return ONLY valid JSON with:
+- productName: string
+- compatibilityScore: number (0-100) or null if unidentifiable
+- interactionLevel: "positive" | "neutral" | "negative"
+- warnings: array of specific, actionable warnings
+- recommendations: array of detailed, personalized recommendations`;
     } else {
-      analysisPrompt = `Analyze the food/product "${productName}" for potential interactions with these medications: ${medicationList}.
-         Consider: Will this food affect medication absorption? Could it worsen side effects? Could it interfere with efficacy?
-         Return ONLY valid JSON with: productName, compatibilityScore (0-100), interactionLevel (positive/neutral/negative), warnings (array), recommendations (array).`;
+      analysisPrompt = `You are a clinical pharmacist with expertise in food-drug interactions. Analyze the food/product "${productName}" for potential interactions with the following medications:
+
+PATIENT MEDICATION PROFILE:
+${detailedMedicationProfile}
+
+ANALYSIS REQUIREMENTS:
+1. For each medication, research and consider:
+   - Known food-drug interactions with ${productName}
+   - Effects on medication absorption (timing, bioavailability)
+   - Potential for increased/decreased medication effects
+   - Risk of side effect amplification
+   - Nutritional impact on the medical condition being treated
+2. Consider dosage and frequency when assessing interaction severity
+3. Account for the specific medical purposes when making recommendations
+4. If the food is unhealthy but medication-compatible, mention this clearly
+
+SCORING CRITERIA:
+- 90-100: Highly beneficial interaction, may enhance treatment
+- 80-89: Safe with potential benefits
+- 70-79: Generally safe, minor considerations
+- 60-69: Caution advised, timing may matter
+- 50-59: Moderate interaction risk
+- 30-49: Significant interaction, careful monitoring needed
+- 0-29: High risk, avoid or consult healthcare provider
+
+Return ONLY valid JSON with:
+- productName: string
+- compatibilityScore: number (0-100)
+- interactionLevel: "positive" | "neutral" | "negative"
+- warnings: array of specific, actionable warnings based on research
+- recommendations: array of detailed, personalized recommendations based on the medication profile`;
     }
 
     let analysisResult;
