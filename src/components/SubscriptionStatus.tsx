@@ -27,6 +27,7 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
   const [loading, setLoading] = useState(false);
 
   const FREE_SCAN_LIMIT = 5;
+  const BASIC_SCAN_LIMIT = 50;
 
   const handleRefreshStatus = async () => {
     setLoading(true);
@@ -73,9 +74,14 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
   }
 
   const scansUsed = subscriptionData.scans_used_this_month;
-  const scansRemaining = subscriptionData.subscribed ? -1 : Math.max(0, FREE_SCAN_LIMIT - scansUsed);
-  const usagePercentage = subscriptionData.subscribed ? 0 : (scansUsed / FREE_SCAN_LIMIT) * 100;
-  const isNearLimit = !subscriptionData.subscribed && usagePercentage >= 80;
+  const isBasicPlan = subscriptionData.subscribed && subscriptionData.subscription_tier === 'Basic';
+  const scansRemaining = subscriptionData.subscribed ? 
+    (isBasicPlan ? Math.max(0, BASIC_SCAN_LIMIT - scansUsed) : -1) : 
+    Math.max(0, FREE_SCAN_LIMIT - scansUsed);
+  const usagePercentage = isBasicPlan ? 
+    (scansUsed / BASIC_SCAN_LIMIT) * 100 : 
+    subscriptionData.subscribed ? 0 : (scansUsed / FREE_SCAN_LIMIT) * 100;
+  const isNearLimit = (isBasicPlan && usagePercentage >= 80) || (!subscriptionData.subscribed && usagePercentage >= 80);
 
   if (compact) {
     return (
@@ -87,7 +93,7 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
         ) : (
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">
-              {scansUsed}/{FREE_SCAN_LIMIT} scans
+              {isBasicPlan ? `${scansUsed}/${BASIC_SCAN_LIMIT} scans` : `${scansUsed}/${FREE_SCAN_LIMIT} scans`}
             </Badge>
             {isNearLimit && (
               <AlertCircle className="w-4 h-4 text-orange-500" />
@@ -138,13 +144,14 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {!subscriptionData.subscribed && (
+        {/* Show usage for Basic plan or Free users */}
+        {(isBasicPlan || !subscriptionData.subscribed) && (
           <div className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Scans this month</span>
                 <span className="font-medium">
-                  {scansUsed} / {FREE_SCAN_LIMIT}
+                  {scansUsed} / {isBasicPlan ? BASIC_SCAN_LIMIT : FREE_SCAN_LIMIT}
                 </span>
               </div>
               <Progress 
@@ -153,34 +160,39 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
               />
               {isNearLimit && (
                 <p className="text-sm text-orange-600">
-                  You're running low on scans this month!
+                  {isBasicPlan ? 
+                    "You're running low on scans this month! Consider upgrading to Premium for unlimited scans." :
+                    "You're running low on scans this month!"
+                  }
                 </p>
               )}
             </div>
             
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => navigate('/billing')}
-                className="flex-1"
-              >
-                <CreditCard className="w-4 h-4 mr-2" />
-                Upgrade Now
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  toast({
-                    title: "Learn more about plans",
-                    description: "Compare features and pricing options.",
-                  });
-                  navigate('/billing');
-                }}
-              >
-                Compare Plans
-              </Button>
-            </div>
+            {!subscriptionData.subscribed && (
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => navigate('/billing')}
+                  className="flex-1"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Upgrade Now
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    toast({
+                      title: "Learn more about plans",
+                      description: "Compare features and pricing options.",
+                    });
+                    navigate('/billing');
+                  }}
+                >
+                  Compare Plans
+                </Button>
+              </div>
+            )}
             
             <Button 
               onClick={handleRefreshStatus}
@@ -195,12 +207,12 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
           </div>
         )}
         
-        {subscriptionData.subscribed && (
+        {subscriptionData.subscribed && !isBasicPlan && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Status</span>
               <Badge variant="default" className="bg-green-600 text-white">
-                Active
+                Active - Unlimited Scans
               </Badge>
             </div>
             
