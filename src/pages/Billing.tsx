@@ -45,7 +45,7 @@ const Billing = () => {
         'Community support only',
         'Basic safety warnings'
       ],
-      badge: 'Current',
+      badge: null,
       popular: false,
       icon: Zap,
       description: 'Perfect for trying out our medication safety features'
