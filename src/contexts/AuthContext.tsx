@@ -9,6 +9,13 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
+  subscriptionData: {
+    subscribed: boolean;
+    subscription_tier: string | null;
+    subscription_end: string | null;
+    scans_used_this_month: number;
+  };
+  refreshSubscription: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +32,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [subscriptionData, setSubscriptionData] = useState({
+    subscribed: false,
+    subscription_tier: null as string | null,
+    subscription_end: null as string | null,
+    scans_used_this_month: 0,
+  });
 
   useEffect(() => {
     // Set up auth state listener
@@ -36,7 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Check subscription status when user logs in
         if (event === 'SIGNED_IN' && session?.user) {
-          checkSubscription();
+          refreshSubscription();
         }
       }
     );
@@ -49,19 +62,86 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Check subscription status on initial load
       if (session?.user) {
-        checkSubscription();
+        refreshSubscription();
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+
+    // Set up real-time subscription to listen for subscription changes
+    const channel = supabase
+      .channel('subscription-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'subscribers',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          // Refresh subscription data when it changes
+          fetchSubscriptionData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const fetchSubscriptionData = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('subscribers')
+        .select('scans_used_this_month, subscribed, subscription_tier, subscription_end')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching subscription data:', error);
+        return;
+      }
+
+      if (data) {
+        setSubscriptionData({
+          subscribed: data.subscribed,
+          subscription_tier: data.subscription_tier,
+          subscription_end: data.subscription_end,
+          scans_used_this_month: data.scans_used_this_month,
+        });
+      } else {
+        setSubscriptionData({
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null,
+          scans_used_this_month: 0,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching subscription data:', error);
+    }
+  };
+
   const checkSubscription = async () => {
     try {
       await supabase.functions.invoke('check-subscription');
+      // After checking subscription, fetch the updated data
+      await fetchSubscriptionData();
     } catch (error) {
       console.error('Error checking subscription:', error);
     }
+  };
+
+  const refreshSubscription = async () => {
+    await checkSubscription();
   };
 
   const signUp = async (email: string, password: string) => {
@@ -95,7 +175,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signUp,
     signIn,
     signOut,
-    loading
+    loading,
+    subscriptionData,
+    refreshSubscription
   };
 
   return (
