@@ -23,55 +23,29 @@ interface SubscriptionData {
 const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, subscriptionData, refreshSubscription } = useAuth();
+  const [loading, setLoading] = useState(false);
 
   const FREE_SCAN_LIMIT = 5;
 
-  const fetchSubscriptionData = async () => {
-    if (!user) return;
-
+  const handleRefreshStatus = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('subscribers')
-        .select('scans_used_this_month, subscribed, subscription_tier, subscription_end')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching subscription data:', error);
-        // If no record exists, create default
-        setSubscriptionData({
-          scans_used_this_month: 0,
-          subscribed: false,
-          subscription_tier: null,
-          subscription_end: null
-        });
-        return;
-      }
-
-      if (data) {
-        setSubscriptionData(data);
-      } else {
-        // No record exists, user has default free account
-        setSubscriptionData({
-          scans_used_this_month: 0,
-          subscribed: false,
-          subscription_tier: null,
-          subscription_end: null
-        });
-      }
+      await refreshSubscription();
+      toast({
+        title: "Status refreshed",
+        description: "Your subscription status has been updated.",
+      });
     } catch (error) {
-      console.error('Error fetching subscription data:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to refresh subscription status.",
+      });
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchSubscriptionData();
-  }, [user]);
 
   const planIcons = {
     basic: Shield,
@@ -203,12 +177,13 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
             </div>
             
             <Button 
-              onClick={fetchSubscriptionData}
+              onClick={handleRefreshStatus}
               variant="ghost" 
               size="sm"
               className="w-full"
+              disabled={loading}
             >
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh Status
             </Button>
           </div>

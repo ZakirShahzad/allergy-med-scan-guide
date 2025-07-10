@@ -10,62 +10,25 @@ import { ArrowLeft, Check, Crown, Shield, Users, Zap, CreditCard, Settings, X } 
 import { useToast } from '@/hooks/use-toast';
 
 const Billing = () => {
-  const { user } = useAuth();
+  const { user, subscriptionData, refreshSubscription } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
 
-  const [subscriptionStatus, setSubscriptionStatus] = useState({
-    subscribed: false,
-    plan: null,
-    endDate: null,
-    scansUsed: 0,
-    scansLimit: 5,
-  });
-
-  useEffect(() => {
-    if (user) {
-      checkSubscription();
-      fetchSubscriptionData();
-    }
-  }, [user]);
-
-  const checkSubscription = async () => {
+  const handleRefreshSubscription = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('check-subscription');
-      if (error) throw error;
-      console.log('Subscription check result:', data);
+      await refreshSubscription();
+      toast({
+        title: "Subscription refreshed",
+        description: "Your subscription status has been updated.",
+      });
     } catch (error) {
-      console.error('Error checking subscription:', error);
-    }
-  };
-
-  const fetchSubscriptionData = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('subscribers')
-        .select('scans_used_this_month, subscribed, subscription_tier, subscription_end')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching subscription data:', error);
-        return;
-      }
-
-      if (data) {
-        setSubscriptionStatus({
-          subscribed: data.subscribed,
-          plan: data.subscription_tier,
-          endDate: data.subscription_end,
-          scansUsed: data.scans_used_this_month,
-          scansLimit: data.subscribed ? -1 : 5,
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching subscription data:', error);
+      console.error('Error refreshing subscription:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to refresh subscription status.",
+      });
     }
   };
 
@@ -206,8 +169,7 @@ const Billing = () => {
       });
 
       // Refresh subscription data
-      await checkSubscription();
-      await fetchSubscriptionData();
+      await handleRefreshSubscription();
     } catch (error) {
       console.error('Error cancelling subscription:', error);
       toast({
@@ -267,7 +229,7 @@ const Billing = () => {
           </div>
 
           {/* Current Subscription Status */}
-          {subscriptionStatus.subscribed && (
+          {subscriptionData.subscribed && (
             <Card className="border-success bg-success-lighter">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -278,10 +240,10 @@ const Billing = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <p className="font-semibold">{subscriptionStatus.plan || 'Premium'} Plan</p>
+                    <p className="font-semibold">{subscriptionData.subscription_tier || 'Premium'} Plan</p>
                     <p className="text-sm text-gray-600">
-                      {subscriptionStatus.endDate 
-                        ? `Renews on ${new Date(subscriptionStatus.endDate).toLocaleDateString()}`
+                      {subscriptionData.subscription_end 
+                        ? `Renews on ${new Date(subscriptionData.subscription_end).toLocaleDateString()}`
                         : 'Active subscription'
                       }
                     </p>
