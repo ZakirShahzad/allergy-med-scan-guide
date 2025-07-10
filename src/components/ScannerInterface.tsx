@@ -89,7 +89,6 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
   };
 
   const handleRetake = () => {
-    setUploadedImage(null);
     startCamera();
   };
 
