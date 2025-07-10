@@ -38,6 +38,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     subscription_end: null as string | null,
     scans_used_this_month: 0,
   });
+  const [lastSubscriptionCheck, setLastSubscriptionCheck] = useState<number>(0);
+  
+  // Rate limiting - only allow subscription checks every 30 seconds
+  const SUBSCRIPTION_CHECK_COOLDOWN = 30000;
 
   const fetchSubscriptionData = useCallback(async () => {
     if (!user) return;
@@ -75,16 +79,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   const checkSubscription = useCallback(async () => {
+    // Rate limiting: only check subscription every 30 seconds
+    const now = Date.now();
+    if (now - lastSubscriptionCheck < SUBSCRIPTION_CHECK_COOLDOWN) {
+      console.log('Subscription check skipped due to rate limiting');
+      return;
+    }
+    
+    setLastSubscriptionCheck(now);
+    
     try {
       await supabase.functions.invoke('check-subscription');
       // After checking subscription, fetch the updated data
       await fetchSubscriptionData();
     } catch (error) {
       console.error('Error checking subscription:', error);
+      // Don't throw the error to prevent infinite loops
     }
-  }, [fetchSubscriptionData]);
+  }, [fetchSubscriptionData, lastSubscriptionCheck, SUBSCRIPTION_CHECK_COOLDOWN]);
 
   const refreshSubscription = useCallback(async () => {
+    // Force refresh - bypass rate limiting for manual refresh
+    setLastSubscriptionCheck(0);
     await checkSubscription();
   }, [checkSubscription]);
 
@@ -125,30 +141,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!user) return;
 
-    // Set up real-time subscription to listen for subscription changes
-    const channel = supabase
-      .channel('subscription-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'subscribers',
-          filter: `user_id=eq.${user.id}`
-        },
-        () => {
-          // Refresh subscription data when it changes
-          setTimeout(() => {
-            checkSubscription();
-          }, 0);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, checkSubscription]);
+    // Just fetch the subscription data when user changes, don't set up real-time listener to avoid infinite loops
+    fetchSubscriptionData();
+  }, [user, fetchSubscriptionData]);
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
