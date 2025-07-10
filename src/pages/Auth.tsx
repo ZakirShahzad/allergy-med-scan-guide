@@ -55,7 +55,7 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="bg-blue-600 p-3 rounded-xl">
+            <div className="bg-success p-3 rounded-xl">
               <Pill className="w-8 h-8 text-white" />
             </div>
           </div>

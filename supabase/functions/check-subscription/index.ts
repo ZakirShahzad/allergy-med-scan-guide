@@ -77,16 +77,27 @@ serve(async (req) => {
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
       logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
       
-      // Determine subscription tier from price
+      // Determine subscription tier from price amount
       const priceId = subscription.items.data[0].price.id;
       const price = await stripe.prices.retrieve(priceId);
       const amount = price.unit_amount || 0;
-      if (amount <= 999) {
+      
+      // Match the pricing from create-checkout: basic=999, premium=1999, family=2999
+      if (amount === 999) {
         subscriptionTier = "Basic";
-      } else if (amount <= 1999) {
+      } else if (amount === 1999) {
         subscriptionTier = "Premium";
-      } else {
+      } else if (amount === 2999) {
         subscriptionTier = "Family";
+      } else {
+        // Fallback for any other amounts
+        if (amount < 1500) {
+          subscriptionTier = "Basic";
+        } else if (amount < 2500) {
+          subscriptionTier = "Premium";
+        } else {
+          subscriptionTier = "Family";
+        }
       }
       logStep("Determined subscription tier", { priceId, amount, subscriptionTier });
     } else {
