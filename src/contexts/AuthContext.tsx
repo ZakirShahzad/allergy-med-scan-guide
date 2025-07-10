@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -39,63 +39,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     scans_used_this_month: 0,
   });
 
-  useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-        
-        // Check subscription status when user logs in - always call checkSubscription to sync with Stripe
-        if (event === 'SIGNED_IN' && session?.user) {
-          checkSubscription();
-        }
-      }
-    );
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      
-      // Check subscription status on initial load - always call checkSubscription to sync with Stripe
-      if (session?.user) {
-        checkSubscription();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-
-    // Set up real-time subscription to listen for subscription changes
-    const channel = supabase
-      .channel('subscription-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'subscribers',
-          filter: `user_id=eq.${user.id}`
-        },
-        () => {
-          // Refresh subscription data when it changes - use checkSubscription to sync with Stripe
-          checkSubscription();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
-  const fetchSubscriptionData = async () => {
+  const fetchSubscriptionData = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -128,9 +72,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error('Error fetching subscription data:', error);
     }
-  };
+  }, [user]);
 
-  const checkSubscription = async () => {
+  const checkSubscription = useCallback(async () => {
     try {
       await supabase.functions.invoke('check-subscription');
       // After checking subscription, fetch the updated data
@@ -138,11 +82,73 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error('Error checking subscription:', error);
     }
-  };
+  }, [fetchSubscriptionData]);
 
-  const refreshSubscription = async () => {
+  const refreshSubscription = useCallback(async () => {
     await checkSubscription();
-  };
+  }, [checkSubscription]);
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+        
+        // Check subscription status when user logs in
+        if (event === 'SIGNED_IN' && session?.user) {
+          setTimeout(() => {
+            checkSubscription();
+          }, 0);
+        }
+      }
+    );
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+      
+      // Check subscription status on initial load
+      if (session?.user) {
+        setTimeout(() => {
+          checkSubscription();
+        }, 0);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [checkSubscription]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Set up real-time subscription to listen for subscription changes
+    const channel = supabase
+      .channel('subscription-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'subscribers',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          // Refresh subscription data when it changes
+          setTimeout(() => {
+            checkSubscription();
+          }, 0);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, checkSubscription]);
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
