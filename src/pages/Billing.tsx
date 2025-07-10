@@ -56,36 +56,21 @@ const Billing = () => {
       interval: 'month',
       features: [
         'Unlimited medication scans',
-        'Advanced drug interaction analysis',
-        'Comprehensive allergy checking',
-        'Priority support',
-        'Smart medication reminders',
-        'Emergency sharing with contacts',
-        'Detailed health reports',
-        'Medicine expiration tracking'
+        'Advanced drug interaction analysis with detailed recommendations',
+        'Comprehensive allergy checking with severity levels',
+        'Priority 24/7 support with pharmacist consultation',
+        'Smart medication reminders with customizable schedules',
+        'Emergency sharing with family and healthcare providers',
+        'Detailed health reports with trend analysis',
+        'Medicine expiration tracking with auto-alerts',
+        'Alternative product suggestions for high-risk items',
+        'Advanced AI-powered interaction detection',
+        'Personalized medication timing optimization',
+        'Integration with electronic health records'
       ],
       badge: 'Most Popular',
       popular: true,
       icon: Crown
-    },
-    {
-      id: 'family',
-      name: 'Family',
-      price: 29.99,
-      interval: 'month',
-      features: [
-        'Everything in Premium',
-        'Up to 5 family members',
-        'Shared emergency information',
-        'Family medication calendar',
-        'Caregiver notifications',
-        'Multi-profile management',
-        'Family health insights',
-        'Bulk medication scanning'
-      ],
-      badge: 'Best Value',
-      popular: false,
-      icon: Users
     }
   ];
 
@@ -274,13 +259,12 @@ const Billing = () => {
 
 
           {/* Pricing Plans */}
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8 justify-center">
             {plans.map((plan) => {
               const Icon = plan.icon;
               const isCurrentPlan = subscriptionData.subscribed && 
                 ((plan.id === 'basic' && subscriptionData.subscription_tier === 'Basic') ||
-                 (plan.id === 'premium' && subscriptionData.subscription_tier === 'Premium') ||
-                 (plan.id === 'family' && subscriptionData.subscription_tier === 'Family'));
+                 (plan.id === 'premium' && subscriptionData.subscription_tier === 'Premium'));
               
               return (
                 <Card 

@@ -11,6 +11,7 @@ interface AnalysisResult {
   cons: string[];
   userMedications: string[];
   timestamp: string;
+  alternatives?: string[];
 }
 
 interface AnalysisResultsProps {
@@ -224,6 +225,34 @@ const AnalysisResults = ({ result, onNewAnalysis }: AnalysisResultsProps) => {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Alternative Products (for high-risk items) */}
+          {result.alternatives && result.alternatives.length > 0 && result.compatibilityScore !== null && result.compatibilityScore < 60 && (
+            <Card className="bg-blue-50 border-blue-200">
+              <CardHeader>
+                <CardTitle className="flex items-center text-blue-700">
+                  <ShieldCheck className="w-5 h-5 mr-2" />
+                  Recommended Safer Alternatives
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-blue-800 mb-4">
+                  Since this product has a high interaction risk with your medications, here are safer alternatives you might consider:
+                </p>
+                <div className="space-y-3">
+                  {result.alternatives.map((alternative, index) => (
+                    <div key={index} className="flex items-start space-x-3 p-4 bg-white border border-blue-200 rounded-lg">
+                      <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-blue-900 font-medium">{alternative}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-blue-600 mt-4">
+                  <strong>Note:</strong> Always consult with your healthcare provider before making changes to your diet or switching products.
+                </p>
               </CardContent>
             </Card>
           )}

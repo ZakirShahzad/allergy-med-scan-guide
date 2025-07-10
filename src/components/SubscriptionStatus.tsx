@@ -93,7 +93,7 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
         ) : (
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">
-              {isBasicPlan ? `${scansUsed}/${BASIC_SCAN_LIMIT} scans` : `${scansUsed}/${FREE_SCAN_LIMIT} scans`}
+              Free Trial: {scansUsed}/{FREE_SCAN_LIMIT} scans
             </Badge>
             {isNearLimit && (
               <AlertCircle className="w-4 h-4 text-orange-500" />
@@ -130,7 +130,7 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
           ) : (
             <>
               <Zap className="w-5 h-5 text-blue-600" />
-              Free Plan
+              Free Trial
             </>
           )}
         </CardTitle>
@@ -152,6 +152,8 @@ const SubscriptionStatus = ({ compact = false }: SubscriptionStatusProps) => {
                 <span>Scans this month</span>
                 <span className="font-medium">
                   {scansUsed} / {isBasicPlan ? BASIC_SCAN_LIMIT : FREE_SCAN_LIMIT}
+                  {!subscriptionData.subscribed && ' (Free Trial)'}
+                  {isBasicPlan && ' (Basic Plan)'}
                 </span>
               </div>
               <Progress 

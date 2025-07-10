@@ -203,12 +203,15 @@ SCORING CRITERIA (based on medication interaction safety only):
 
 IMPORTANT: Focus only on medication safety - do not make general health/nutrition judgments.
 
+If the compatibility score is below 60 (high interaction risk), MUST provide 2-3 alternative products that would be safer with the patient's medications.
+
 Return ONLY valid JSON with:
 - productName: string
 - compatibilityScore: number (0-100) or null if unidentifiable
 - interactionLevel: "positive" | "neutral" | "negative"
 - pros: array of positive aspects regarding medication interactions
-- cons: array of concerns or precautions regarding medication interactions`;
+- cons: array of concerns or precautions regarding medication interactions
+- alternatives: array of 2-3 safer alternative products (only if score < 60, otherwise empty array)`;
     } else {
       analysisPrompt = `You are a clinical pharmacist with expertise in food-drug interactions. Analyze the food/product "${productName}" for potential interactions with the following medications:
 
@@ -239,13 +242,15 @@ SCORING CRITERIA (based on medication interaction safety only):
 IMPORTANT: 
 - Focus only on medication safety - do not make general health/nutrition judgments
 - If the product name is not a real food/product, return "Sorry, we couldn't catch that"
+- If the compatibility score is below 60 (high interaction risk), MUST provide 2-3 alternative products that would be safer with the patient's medications
 
 Return ONLY valid JSON with:
 - productName: string (use "Sorry, we couldn't catch that" if not a real product)
 - compatibilityScore: number (0-100) or null if unrecognizable
 - interactionLevel: "positive" | "neutral" | "negative"
 - pros: array of positive aspects regarding medication interactions
-- cons: array of concerns or precautions regarding medication interactions`;
+- cons: array of concerns or precautions regarding medication interactions
+- alternatives: array of 2-3 safer alternative products (only if score < 60, otherwise empty array)`;
     }
 
     let analysisResult;
@@ -354,6 +359,9 @@ Return ONLY valid JSON with:
     }
     if (!Array.isArray(analysisResult.cons)) {
       analysisResult.cons = [analysisResult.cons].filter(Boolean);
+    }
+    if (!Array.isArray(analysisResult.alternatives)) {
+      analysisResult.alternatives = [];
     }
     
     // Only assign default score if product was identified and score is not a number
