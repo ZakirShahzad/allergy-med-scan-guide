@@ -263,36 +263,6 @@ const Billing = () => {
             </Card>
           )}
 
-          {/* Usage Stats for Free/Basic Users */}
-          {!subscriptionStatus.subscribed && (
-            <Card className="border-orange-200 bg-orange-50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-orange-600" />
-                  Current Usage
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span>Scans this month</span>
-                    <span className="font-semibold">
-                      {subscriptionStatus.scansUsed} / {subscriptionStatus.scansLimit}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-orange-500 h-2 rounded-full"
-                      style={{ width: `${(subscriptionStatus.scansUsed / subscriptionStatus.scansLimit) * 100}%` }}
-                    />
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    {subscriptionStatus.scansLimit - subscriptionStatus.scansUsed} scans remaining
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Pricing Plans */}
           <div className="grid md:grid-cols-3 gap-8">
