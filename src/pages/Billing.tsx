@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Check, Crown, Shield, Users, Zap, CreditCard, Settings } from 'lucide-react';
+import { ArrowLeft, Check, Crown, Shield, Users, Zap, CreditCard, Settings, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Billing = () => {
@@ -188,6 +188,38 @@ const Billing = () => {
     }
   };
 
+  const handleCancelSubscription = async () => {
+    if (!confirm('Are you sure you want to cancel your subscription? This action cannot be undone.')) {
+      return;
+    }
+
+    setLoading('cancel');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('cancel-subscription');
+      
+      if (error) throw error;
+
+      toast({
+        title: "Subscription cancelled",
+        description: "Your subscription has been cancelled successfully.",
+      });
+
+      // Refresh subscription data
+      await checkSubscription();
+      await fetchSubscriptionData();
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to cancel subscription. Please try again.",
+      });
+    } finally {
+      setLoading(null);
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex items-center justify-center">
@@ -244,7 +276,7 @@ const Billing = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between">
+                <div className="space-y-4">
                   <div>
                     <p className="font-semibold">{subscriptionStatus.plan || 'Premium'} Plan</p>
                     <p className="text-sm text-gray-600">
@@ -254,10 +286,25 @@ const Billing = () => {
                       }
                     </p>
                   </div>
-                  <Button variant="outline" onClick={handleManageSubscription} className="gap-2">
-                    <Settings className="w-4 h-4" />
-                    Manage Subscription
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleManageSubscription} className="gap-2 flex-1">
+                      <Settings className="w-4 h-4" />
+                      Manage Subscription
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={handleCancelSubscription} 
+                      disabled={loading === 'cancel'}
+                      className="gap-2 flex-1"
+                    >
+                      {loading === 'cancel' ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
+                      Cancel Subscription
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
