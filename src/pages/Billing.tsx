@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,14 +15,59 @@ const Billing = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
 
-  // Mock subscription status - will be replaced with real data
-  const [subscriptionStatus] = useState({
+  const [subscriptionStatus, setSubscriptionStatus] = useState({
     subscribed: false,
     plan: null,
     endDate: null,
-    scansUsed: 12,
-    scansLimit: 50,
+    scansUsed: 0,
+    scansLimit: 5,
   });
+
+  useEffect(() => {
+    if (user) {
+      checkSubscription();
+      fetchSubscriptionData();
+    }
+  }, [user]);
+
+  const checkSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+      if (error) throw error;
+      console.log('Subscription check result:', data);
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+    }
+  };
+
+  const fetchSubscriptionData = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('subscribers')
+        .select('scans_used_this_month, subscribed, subscription_tier, subscription_end')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching subscription data:', error);
+        return;
+      }
+
+      if (data) {
+        setSubscriptionStatus({
+          subscribed: data.subscribed,
+          plan: data.subscription_tier,
+          endDate: data.subscription_end,
+          scansUsed: data.scans_used_this_month,
+          scansLimit: data.subscribed ? -1 : 5,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching subscription data:', error);
+    }
+  };
 
   const plans = [
     {
@@ -93,22 +139,53 @@ const Billing = () => {
 
     setLoading(planId);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { planId }
+      });
+
+      if (error) throw error;
+
+      // Open Stripe checkout in a new tab
+      window.open(data.url, '_blank');
+      
       toast({
         title: "Redirecting to checkout",
         description: "You'll be redirected to our secure payment page.",
       });
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create checkout session. Please try again.",
+      });
+    } finally {
       setLoading(null);
-      // This will be replaced with actual Stripe checkout
-    }, 1000);
+    }
   };
 
-  const handleManageSubscription = () => {
-    toast({
-      title: "Opening billing portal",
-      description: "You'll be redirected to manage your subscription.",
-    });
+  const handleManageSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      
+      if (error) throw error;
+
+      // Open customer portal in a new tab
+      window.open(data.url, '_blank');
+      
+      toast({
+        title: "Opening billing portal",
+        description: "You'll be redirected to manage your subscription.",
+      });
+    } catch (error) {
+      console.error('Error opening customer portal:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to open billing portal. Please try again.",
+      });
+    }
   };
 
   if (!user) {
@@ -169,9 +246,12 @@ const Billing = () => {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-semibold">Premium Plan</p>
+                    <p className="font-semibold">{subscriptionStatus.plan || 'Premium'} Plan</p>
                     <p className="text-sm text-gray-600">
-                      Renews on March 15, 2024
+                      {subscriptionStatus.endDate 
+                        ? `Renews on ${new Date(subscriptionStatus.endDate).toLocaleDateString()}`
+                        : 'Active subscription'
+                      }
                     </p>
                   </div>
                   <Button variant="outline" onClick={handleManageSubscription} className="gap-2">

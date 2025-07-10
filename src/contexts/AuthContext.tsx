@@ -33,6 +33,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Check subscription status when user logs in
+        if (event === 'SIGNED_IN' && session?.user) {
+          checkSubscription();
+        }
       }
     );
 
@@ -41,10 +46,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      // Check subscription status on initial load
+      if (session?.user) {
+        checkSubscription();
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const checkSubscription = async () => {
+    try {
+      await supabase.functions.invoke('check-subscription');
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+    }
+  };
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
