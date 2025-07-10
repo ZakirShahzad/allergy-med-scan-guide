@@ -186,15 +186,16 @@ PATIENT MEDICATION PROFILE:
 ${detailedMedicationProfile}
 
 ANALYSIS REQUIREMENTS:
-1. For each medication, research and consider:
+1. First determine if "${productName}" is a real, recognizable food or product. If it's gibberish, nonsense, or not a real food/product, respond with productName: "Sorry, we couldn't catch that" and compatibilityScore: null.
+2. For real foods/products, research and consider:
    - Known food-drug interactions with ${productName} based on clinical evidence
    - Effects on medication absorption (timing, bioavailability)
    - Potential for increased/decreased medication effects
    - Risk of side effect amplification
    - Nutritional impact on the medical condition being treated
-2. Consider dosage and frequency when assessing interaction severity
-3. Account for the specific medical purposes when making assessments
-4. Be factual and evidence-based - only mention what is clinically relevant
+3. Consider dosage and frequency when assessing interaction severity
+4. Account for the specific medical purposes when making assessments
+5. Be factual and evidence-based - only mention what is clinically relevant
 
 SCORING CRITERIA (based on medication interaction safety only):
 - 90-100: No interaction concerns, may provide nutritional benefits for condition
@@ -205,11 +206,13 @@ SCORING CRITERIA (based on medication interaction safety only):
 - 30-49: Significant interaction, careful monitoring needed
 - 0-29: High interaction risk, avoid or consult healthcare provider
 
-IMPORTANT: Focus only on medication safety - do not make general health/nutrition judgments.
+IMPORTANT: 
+- Focus only on medication safety - do not make general health/nutrition judgments
+- If the product name is not a real food/product, return "Sorry, we couldn't catch that"
 
 Return ONLY valid JSON with:
-- productName: string
-- compatibilityScore: number (0-100)
+- productName: string (use "Sorry, we couldn't catch that" if not a real product)
+- compatibilityScore: number (0-100) or null if unrecognizable
 - interactionLevel: "positive" | "neutral" | "negative"
 - pros: array of positive aspects regarding medication interactions
 - cons: array of concerns or precautions regarding medication interactions`;
