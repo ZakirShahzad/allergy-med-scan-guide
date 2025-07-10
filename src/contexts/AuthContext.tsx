@@ -47,9 +47,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Check subscription status when user logs in
+        // Check subscription status when user logs in - always call checkSubscription to sync with Stripe
         if (event === 'SIGNED_IN' && session?.user) {
-          refreshSubscription();
+          checkSubscription();
         }
       }
     );
@@ -60,9 +60,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       setLoading(false);
       
-      // Check subscription status on initial load
+      // Check subscription status on initial load - always call checkSubscription to sync with Stripe
       if (session?.user) {
-        refreshSubscription();
+        checkSubscription();
       }
     });
 
@@ -84,8 +84,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           filter: `user_id=eq.${user.id}`
         },
         () => {
-          // Refresh subscription data when it changes
-          fetchSubscriptionData();
+          // Refresh subscription data when it changes - use checkSubscription to sync with Stripe
+          checkSubscription();
         }
       )
       .subscribe();

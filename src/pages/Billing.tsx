@@ -34,6 +34,23 @@ const Billing = () => {
 
   const plans = [
     {
+      id: 'free',
+      name: 'Free Trial',
+      price: 0,
+      interval: 'forever',
+      features: [
+        '5 medication scans per month',
+        'Basic drug interaction analysis',
+        'Limited allergy checking',
+        'Community support only',
+        'Basic safety warnings'
+      ],
+      badge: 'Current',
+      popular: false,
+      icon: Zap,
+      description: 'Perfect for trying out our medication safety features'
+    },
+    {
       id: 'basic',
       name: 'Basic',
       price: 9.99,
@@ -259,12 +276,13 @@ const Billing = () => {
 
 
           {/* Pricing Plans */}
-          <div className="grid md:grid-cols-2 gap-8 justify-center">
+          <div className="grid md:grid-cols-3 gap-8 justify-center">
             {plans.map((plan) => {
               const Icon = plan.icon;
-              const isCurrentPlan = subscriptionData.subscribed && 
-                ((plan.id === 'basic' && subscriptionData.subscription_tier === 'Basic') ||
-                 (plan.id === 'premium' && subscriptionData.subscription_tier === 'Premium'));
+              const isCurrentPlan = 
+                (plan.id === 'free' && !subscriptionData.subscribed) ||
+                (plan.id === 'basic' && subscriptionData.subscribed && subscriptionData.subscription_tier === 'Basic') ||
+                (plan.id === 'premium' && subscriptionData.subscribed && subscriptionData.subscription_tier === 'Premium');
               
               return (
                 <Card 
@@ -319,6 +337,14 @@ const Billing = () => {
                         disabled
                       >
                         Current Plan
+                      </Button>
+                    ) : plan.id === 'free' ? (
+                      <Button 
+                        variant="outline"
+                        className="w-full"
+                        disabled
+                      >
+                        Free Trial
                       </Button>
                     ) : (
                       <Button 
