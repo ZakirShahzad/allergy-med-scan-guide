@@ -9,6 +9,7 @@ import FoodAnalyzer from '@/components/FoodAnalyzer';
 import AnalysisResults from '@/components/AnalysisResults';
 import MedicationManager from '@/components/MedicationManager';
 import SubscriptionStatus from '@/components/SubscriptionStatus';
+import MedicationReminderBanner from '@/components/MedicationReminderBanner';
 
 
 const Index = () => {
@@ -69,6 +70,7 @@ const Index = () => {
           
           {activeTab === 'analyzer' && (
             <div>
+              <MedicationReminderBanner onGoToMedications={() => setActiveTab('medications')} />
               {!analysisResult ? (
                 <FoodAnalyzer onAnalysisComplete={handleAnalysisComplete} />
               ) : (
