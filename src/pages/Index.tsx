@@ -64,8 +64,8 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
       <Header />
       
-      <main className="max-w-4xl mx-auto px-4 py-8 pb-24">
-        <div className="space-y-6">
+      <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20 sm:pb-24">
+        <div className="space-y-4 sm:space-y-6">
           <SubscriptionStatus />
           
           {activeTab === 'analyzer' && (

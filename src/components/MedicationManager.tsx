@@ -202,24 +202,27 @@ const MedicationManager = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">My Medications</h2>
-          <p className="text-gray-600">Manage your current medications for food interaction analysis</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">My Medications</h2>
+          <p className="text-sm sm:text-base text-gray-600">Manage your current medications for food interaction analysis</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => {
-              setEditingMedication(null);
-              setFormData({
-                medication_name: '',
-                dosage: '',
-                frequency: '',
-                purpose: '',
-                notes: ''
-              });
-            }}>
+            <Button 
+              onClick={() => {
+                setEditingMedication(null);
+                setFormData({
+                  medication_name: '',
+                  dosage: '',
+                  frequency: '',
+                  purpose: '',
+                  notes: ''
+                });
+              }}
+              className="w-full sm:w-auto min-h-[44px]"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Medication
             </Button>
@@ -311,22 +314,23 @@ const MedicationManager = () => {
             <Card key={medication.id}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-blue-100 p-2 rounded-lg">
-                      <Pill className="w-5 h-5 text-blue-600" />
+                  <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                    <div className="bg-blue-100 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+                      <Pill className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">{medication.medication_name}</CardTitle>
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-base sm:text-lg truncate">{medication.medication_name}</CardTitle>
                       {medication.purpose && (
-                        <CardDescription>For {medication.purpose}</CardDescription>
+                        <CardDescription className="text-sm truncate">For {medication.purpose}</CardDescription>
                       )}
                     </div>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-1 sm:space-x-2 flex-shrink-0">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(medication)}
+                      className="min-h-[44px] min-w-[44px] p-2"
                     >
                       <Edit2 className="w-4 h-4" />
                     </Button>
@@ -334,6 +338,7 @@ const MedicationManager = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDelete(medication.id)}
+                      className="min-h-[44px] min-w-[44px] p-2"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -341,17 +346,17 @@ const MedicationManager = () => {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                   {medication.dosage && (
                     <div>
                       <span className="font-medium text-gray-700">Dosage:</span>
-                      <p className="text-gray-600">{medication.dosage}</p>
+                      <p className="text-gray-600 break-words">{medication.dosage}</p>
                     </div>
                   )}
                   {medication.frequency && (
                     <div>
                       <span className="font-medium text-gray-700">Frequency:</span>
-                      <p className="text-gray-600">{medication.frequency}</p>
+                      <p className="text-gray-600 break-words">{medication.frequency}</p>
                     </div>
                   )}
                 </div>

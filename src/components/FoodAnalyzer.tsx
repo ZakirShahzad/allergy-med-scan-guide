@@ -243,18 +243,18 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Analyze Food & Products</h2>
-        <p className="text-gray-600">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Analyze Food & Products</h2>
+        <p className="text-sm sm:text-base text-gray-600">
           Check how foods and products interact with your medications
         </p>
       </div>
 
       <Tabs defaultValue="camera" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="camera">Camera</TabsTrigger>
-          <TabsTrigger value="upload">Upload</TabsTrigger>
-          <TabsTrigger value="search">Search</TabsTrigger>
-          <TabsTrigger value="barcode">Barcode</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 h-auto">
+          <TabsTrigger value="camera" className="text-xs sm:text-sm py-2 sm:py-3">Camera</TabsTrigger>
+          <TabsTrigger value="upload" className="text-xs sm:text-sm py-2 sm:py-3">Upload</TabsTrigger>
+          <TabsTrigger value="search" className="text-xs sm:text-sm py-2 sm:py-3">Search</TabsTrigger>
+          <TabsTrigger value="barcode" className="text-xs sm:text-sm py-2 sm:py-3">Barcode</TabsTrigger>
         </TabsList>
 
         <TabsContent value="camera" className="space-y-4">
@@ -272,10 +272,10 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
               <CardContent>
                 <Button 
                   onClick={startCamera}
-                  className="w-full py-8 text-lg"
+                  className="w-full py-6 sm:py-8 text-base sm:text-lg min-h-[56px]"
                   size="lg"
                 >
-                  <Camera className="w-6 h-6 mr-3" />
+                  <Camera className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
                   Open Camera
                 </Button>
               </CardContent>
@@ -298,7 +298,7 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
                   />
                   <canvas ref={canvasRef} className="hidden" />
                 </div>
-                <Button onClick={capturePhoto} className="w-full" size="lg">
+                <Button onClick={capturePhoto} className="w-full min-h-[56px]" size="lg">
                   <Camera className="w-5 h-5 mr-2" />
                   Capture & Analyze
                 </Button>
@@ -329,10 +329,10 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
               <Button 
                 onClick={() => fileInputRef.current?.click()}
                 variant="outline"
-                className="w-full py-8 text-lg"
+                className="w-full py-6 sm:py-8 text-base sm:text-lg min-h-[56px]"
                 size="lg"
               >
-                <Upload className="w-6 h-6 mr-3" />
+                <Upload className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
                 Choose File
               </Button>
             </CardContent>
@@ -359,7 +359,7 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
               />
               <Button 
                 onClick={handleSearch}
-                className="w-full"
+                className="w-full min-h-[56px]"
                 size="lg"
               >
                 <Search className="w-5 h-5 mr-2" />
@@ -384,11 +384,11 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
               <Button 
                 onClick={handleBarcodeScan}
                 variant="outline"
-                className="w-full py-8 text-lg"
+                className="w-full py-6 sm:py-8 text-base sm:text-lg min-h-[56px]"
                 size="lg"
                 disabled
               >
-                <Scan className="w-6 h-6 mr-3" />
+                <Scan className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
                 Coming Soon
               </Button>
               <p className="text-sm text-gray-500 text-center mt-2">
