@@ -210,10 +210,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       let scansUsed;
       if (newScanData.is_subscribed) {
-        // For Premium/Enterprise (unlimited), keep the current value or increment by 1
-        scansUsed = prev.subscription_tier === 'Basic' ? 
-          BASIC_SCAN_LIMIT - newScanData.scans_remaining : 
-          prev.scans_used_this_month + 1;
+        if (newScanData.scans_remaining === -1) {
+          // Unlimited scans (Premium/Enterprise) - just increment current usage
+          scansUsed = prev.scans_used_this_month + 1;
+        } else {
+          // Basic plan with limited scans
+          scansUsed = BASIC_SCAN_LIMIT - newScanData.scans_remaining;
+        }
       } else {
         // For free users
         scansUsed = FREE_SCAN_LIMIT - newScanData.scans_remaining;
