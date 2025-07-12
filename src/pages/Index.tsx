@@ -24,15 +24,15 @@ const Index = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    // Check for checkout success and refresh subscription
+    // Check for checkout success but don't automatically refresh to prevent edge function calls
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('checkout') === 'success') {
       // Remove the checkout parameter from URL
       window.history.replaceState({}, '', '/');
-      // Refresh subscription data after successful checkout
-      refreshSubscription();
+      // Users can manually refresh subscription if needed
+      // refreshSubscription(); // Disabled to prevent edge function overuse
     }
-  }, [refreshSubscription]);
+  }, []); // Remove refreshSubscription dependency
 
   const handleAnalysisComplete = (result: any) => {
     setAnalysisResult(result);

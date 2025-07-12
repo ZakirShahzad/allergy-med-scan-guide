@@ -39,9 +39,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     scans_used_this_month: 0,
   });
   const [lastSubscriptionCheck, setLastSubscriptionCheck] = useState<number>(0);
+  const [edgeFunctionDisabled, setEdgeFunctionDisabled] = useState(false);
   
-  // Rate limiting - only allow subscription checks every 10 seconds (reduced from 30)
-  const SUBSCRIPTION_CHECK_COOLDOWN = 10000;
+  // Emergency fix: Significantly increased cooldown to prevent excessive calls
+  const SUBSCRIPTION_CHECK_COOLDOWN = 300000; // 5 minutes
 
   const fetchSubscriptionData = useCallback(async () => {
     if (!user) return;
@@ -79,10 +80,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   const checkSubscription = useCallback(async (force = false) => {
-    // Rate limiting: only check subscription every 10 seconds (unless forced)
+    // Circuit breaker: if edge functions are disabled, only fetch local data
+    if (edgeFunctionDisabled && !force) {
+      console.log('Edge functions disabled due to quota limits, fetching local data only');
+      await fetchSubscriptionData();
+      return;
+    }
+    
+    // Rate limiting: only check subscription every 5 minutes (unless forced)
     const now = Date.now();
     if (!force && now - lastSubscriptionCheck < SUBSCRIPTION_CHECK_COOLDOWN) {
       console.log('Subscription check skipped due to rate limiting');
+      await fetchSubscriptionData(); // Still fetch local data
       return;
     }
     
@@ -92,13 +101,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.functions.invoke('check-subscription');
       if (error) {
         console.error('Subscription check error:', error);
-        // Don't throw on non-critical errors to prevent cascading failures
-        if (error.status !== 429) { // Don't retry on rate limits
-          await fetchSubscriptionData(); // Still try to fetch local data
+        
+        // If we hit quota limits, disable edge functions for a while
+        if (error.message?.includes('quota') || error.message?.includes('limit') || error.status === 429) {
+          console.warn('Edge function quota exceeded, disabling for 30 minutes');
+          setEdgeFunctionDisabled(true);
+          // Re-enable after 30 minutes
+          setTimeout(() => {
+            setEdgeFunctionDisabled(false);
+          }, 30 * 60 * 1000);
         }
+        
+        // Always try to fetch local data as fallback
+        await fetchSubscriptionData();
         return;
       }
-      // After checking subscription, fetch the updated data
+      // After successful edge function call, fetch the updated data
       await fetchSubscriptionData();
     } catch (error) {
       console.error('Error checking subscription:', error);
@@ -109,7 +127,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('Failed to fetch subscription data:', fetchError);
       }
     }
-  }, [fetchSubscriptionData, lastSubscriptionCheck, SUBSCRIPTION_CHECK_COOLDOWN]);
+  }, [fetchSubscriptionData, lastSubscriptionCheck, SUBSCRIPTION_CHECK_COOLDOWN, edgeFunctionDisabled]);
 
   const refreshSubscription = useCallback(async () => {
     // Force refresh - bypass rate limiting for manual refresh
@@ -124,38 +142,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Check subscription status when user logs in
+        // Only check subscription on actual sign-in events, not on initial load
         if (event === 'SIGNED_IN' && session?.user) {
+          // Use a longer delay and check if we really need to call the edge function
           setTimeout(() => {
-            checkSubscription();
-          }, 0);
+            // Only if we don't have recent subscription data
+            if (Date.now() - lastSubscriptionCheck > SUBSCRIPTION_CHECK_COOLDOWN) {
+              checkSubscription();
+            }
+          }, 2000);
         }
       }
     );
 
-    // Get initial session
+    // Get initial session - only fetch local data, don't call edge function
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
       
-      // Check subscription status on initial load
-      if (session?.user) {
-        setTimeout(() => {
-          checkSubscription();
-        }, 0);
-      }
+      // Don't automatically check subscription on page load to prevent excessive calls
+      // Users can manually refresh if needed
     });
 
     return () => subscription.unsubscribe();
-  }, [checkSubscription]);
+  }, []); // Remove checkSubscription dependency to prevent infinite re-renders
 
   useEffect(() => {
     if (!user) return;
 
-    // Just fetch the subscription data when user changes, don't set up real-time listener to avoid infinite loops
+    // Only fetch subscription data from local database, not edge function
+    // This prevents excessive edge function calls while still showing cached data
     fetchSubscriptionData();
-  }, [user, fetchSubscriptionData]);
+  }, [user]); // Remove fetchSubscriptionData dependency to prevent infinite re-renders
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
