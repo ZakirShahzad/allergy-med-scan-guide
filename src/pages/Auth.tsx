@@ -12,12 +12,22 @@ import { useToast } from '@/hooks/use-toast';
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp, signIn } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSignUp = async () => {
+    if (password !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Password mismatch",
+        description: "Passwords do not match. Please check and try again.",
+      });
+      return;
+    }
+
     setLoading(true);
     const { error } = await signUp(email, password);
     if (error) {
@@ -27,10 +37,21 @@ const Auth = () => {
         description: error.message,
       });
     } else {
-      toast({
-        title: "Check your email",
-        description: "We've sent you a confirmation link to complete your registration.",
-      });
+      // Since email confirmation is disabled, automatically sign in the user
+      const signInResult = await signIn(email, password);
+      if (signInResult.error) {
+        toast({
+          variant: "destructive",
+          title: "Auto sign-in failed",
+          description: "Account created but automatic sign-in failed. Please sign in manually.",
+        });
+      } else {
+        toast({
+          title: "Account created successfully",
+          description: "Welcome to Flikkt! You're now signed in.",
+        });
+        navigate('/');
+      }
     }
     setLoading(false);
   };
@@ -134,6 +155,20 @@ const Auth = () => {
                     placeholder="Choose a password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    placeholder="Confirm your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10"
                   />
                 </div>
