@@ -40,8 +40,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   });
   const [lastSubscriptionCheck, setLastSubscriptionCheck] = useState<number>(0);
   
-  // Rate limiting - only allow subscription checks every 30 seconds
-  const SUBSCRIPTION_CHECK_COOLDOWN = 30000;
+  // Rate limiting - only allow subscription checks every 10 seconds (reduced from 30)
+  const SUBSCRIPTION_CHECK_COOLDOWN = 10000;
 
   const fetchSubscriptionData = useCallback(async () => {
     if (!user) return;
@@ -78,10 +78,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [user]);
 
-  const checkSubscription = useCallback(async () => {
-    // Rate limiting: only check subscription every 30 seconds
+  const checkSubscription = useCallback(async (force = false) => {
+    // Rate limiting: only check subscription every 10 seconds (unless forced)
     const now = Date.now();
-    if (now - lastSubscriptionCheck < SUBSCRIPTION_CHECK_COOLDOWN) {
+    if (!force && now - lastSubscriptionCheck < SUBSCRIPTION_CHECK_COOLDOWN) {
       console.log('Subscription check skipped due to rate limiting');
       return;
     }
@@ -89,19 +89,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLastSubscriptionCheck(now);
     
     try {
-      await supabase.functions.invoke('check-subscription');
+      const { error } = await supabase.functions.invoke('check-subscription');
+      if (error) {
+        console.error('Subscription check error:', error);
+        // Don't throw on non-critical errors to prevent cascading failures
+        if (error.status !== 429) { // Don't retry on rate limits
+          await fetchSubscriptionData(); // Still try to fetch local data
+        }
+        return;
+      }
       // After checking subscription, fetch the updated data
       await fetchSubscriptionData();
     } catch (error) {
       console.error('Error checking subscription:', error);
-      // Don't throw the error to prevent infinite loops
+      // Try to fetch local data even if remote check fails
+      try {
+        await fetchSubscriptionData();
+      } catch (fetchError) {
+        console.error('Failed to fetch subscription data:', fetchError);
+      }
     }
   }, [fetchSubscriptionData, lastSubscriptionCheck, SUBSCRIPTION_CHECK_COOLDOWN]);
 
   const refreshSubscription = useCallback(async () => {
     // Force refresh - bypass rate limiting for manual refresh
-    setLastSubscriptionCheck(0);
-    await checkSubscription();
+    await checkSubscription(true);
   }, [checkSubscription]);
 
   useEffect(() => {

@@ -40,7 +40,7 @@ const MedicationManager = () => {
     }
   }, [user]);
 
-  const fetchMedications = async () => {
+  const fetchMedications = async (retryCount = 0) => {
     try {
       const { data, error } = await supabase
         .from('user_medications')
@@ -48,13 +48,21 @@ const MedicationManager = () => {
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Retry once on database errors
+        if (retryCount === 0 && (error.message.includes('connection') || error.message.includes('timeout'))) {
+          console.log('Retrying medication fetch due to connection error');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return fetchMedications(1);
+        }
+        throw error;
+      }
       setMedications(data || []);
     } catch (error) {
       console.error('Error fetching medications:', error);
       toast({
         title: "Error",
-        description: "Failed to load medications",
+        description: "Failed to load medications. Please try refreshing the page.",
         variant: "destructive"
       });
     } finally {
@@ -74,63 +82,75 @@ const MedicationManager = () => {
       return;
     }
 
-    try {
-      if (editingMedication) {
-        const { error } = await supabase
-          .from('user_medications')
-          .update({
-            medication_name: formData.medication_name,
-            dosage: formData.dosage || null,
-            frequency: formData.frequency || null,
-            purpose: formData.purpose || null,
-            notes: formData.notes || null
-          })
-          .eq('id', editingMedication.id);
+    const submitWithRetry = async (retryCount = 0) => {
+      try {
+        if (editingMedication) {
+          const { error } = await supabase
+            .from('user_medications')
+            .update({
+              medication_name: formData.medication_name.trim(),
+              dosage: formData.dosage?.trim() || null,
+              frequency: formData.frequency?.trim() || null,
+              purpose: formData.purpose?.trim() || null,
+              notes: formData.notes?.trim() || null
+            })
+            .eq('id', editingMedication.id);
 
-        if (error) throw error;
-        
-        toast({
-          title: "Success",
-          description: "Medication updated successfully"
-        });
-      } else {
-        const { error } = await supabase
-          .from('user_medications')
-          .insert({
-            user_id: user!.id,
-            medication_name: formData.medication_name,
-            dosage: formData.dosage || null,
-            frequency: formData.frequency || null,
-            purpose: formData.purpose || null,
-            notes: formData.notes || null
+          if (error) throw error;
+          
+          toast({
+            title: "Success",
+            description: "Medication updated successfully"
           });
+        } else {
+          const { error } = await supabase
+            .from('user_medications')
+            .insert({
+              user_id: user!.id,
+              medication_name: formData.medication_name.trim(),
+              dosage: formData.dosage?.trim() || null,
+              frequency: formData.frequency?.trim() || null,
+              purpose: formData.purpose?.trim() || null,
+              notes: formData.notes?.trim() || null
+            });
 
-        if (error) throw error;
+          if (error) throw error;
+          
+          toast({
+            title: "Success",
+            description: "Medication added successfully"
+          });
+        }
+
+        await fetchMedications();
+        setIsDialogOpen(false);
+        setEditingMedication(null);
+        setFormData({
+          medication_name: '',
+          dosage: '',
+          frequency: '',
+          purpose: '',
+          notes: ''
+        });
+      } catch (error: any) {
+        console.error('Error saving medication:', error);
+        
+        // Retry once on connection errors
+        if (retryCount === 0 && (error.message?.includes('connection') || error.message?.includes('timeout'))) {
+          console.log('Retrying medication save due to connection error');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return submitWithRetry(1);
+        }
         
         toast({
-          title: "Success",
-          description: "Medication added successfully"
+          title: "Error",
+          description: `Failed to save medication: ${error.message || 'Unknown error'}`,
+          variant: "destructive"
         });
       }
+    };
 
-      await fetchMedications();
-      setIsDialogOpen(false);
-      setEditingMedication(null);
-      setFormData({
-        medication_name: '',
-        dosage: '',
-        frequency: '',
-        purpose: '',
-        notes: ''
-      });
-    } catch (error) {
-      console.error('Error saving medication:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save medication",
-        variant: "destructive"
-      });
-    }
+    await submitWithRetry();
   };
 
   const handleEdit = (medication: Medication) => {

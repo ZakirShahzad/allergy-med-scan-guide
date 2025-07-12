@@ -45,8 +45,31 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
       return;
     }
 
+    // Validate inputs before sending
+    if (!imageData && !searchTerm) {
+      toast({
+        title: "Error",
+        description: "Please provide either an image or product name",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate image data format if provided
+    if (imageData && !imageData.startsWith('data:image/')) {
+      console.error('Invalid image data format');
+      toast({
+        title: "Error",
+        description: "Invalid image format. Please try taking the photo again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log('Starting product analysis:', { analysisType, hasImage: !!imageData, searchTerm });
+      
       const { data, error } = await supabase.functions.invoke('analyze-medication', {
         body: {
           userId: user.id,
@@ -57,6 +80,8 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
       });
 
       if (error) {
+        console.error('Analysis error response:', error);
+        
         // Handle scan limit reached specifically
         if (error.status === 429 && data?.error === 'scan_limit_reached') {
           toast({
@@ -69,12 +94,35 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
         throw error;
       }
 
+      // Check if analysis returned "unable to analyze" result
+      if (data?.productName === "Sorry, we couldn't catch that" || data?.productName === "Unable to analyze at this time") {
+        toast({
+          title: "Unable to Analyze",
+          description: "We couldn't identify the product in the image. Please try a clearer photo or enter the product name manually.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Analysis completed successfully:', data);
       onAnalysisComplete(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analysis error:', error);
+      
+      let errorMessage = "Unable to analyze the product. Please try again.";
+      
+      // Provide more specific error messages
+      if (error.message?.includes('OpenAI')) {
+        errorMessage = "AI analysis service is temporarily unavailable. Please try again later.";
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = "Analysis timed out. Please try with a smaller image or check your connection.";
+      } else if (error.message?.includes('network')) {
+        errorMessage = "Network error. Please check your internet connection.";
+      }
+      
       toast({
         title: "Analysis Failed",
-        description: "Unable to analyze the product. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

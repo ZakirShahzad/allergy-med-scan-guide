@@ -7,31 +7,43 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper logging function for enhanced debugging
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[ANALYZE-MEDICATION] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('=== FOOD-MEDICATION INTERACTION ANALYSIS START ===');
+    logStep('=== FOOD-MEDICATION INTERACTION ANALYSIS START ===');
     
     const { imageData, productName, analysisType, userId } = await req.json();
-    console.log('Request data:', { userId, analysisType, productName, imageDataLength: imageData?.length });
+    logStep('Request data received', { 
+      userId, 
+      analysisType, 
+      productName, 
+      imageDataLength: imageData?.length,
+      hasImageData: !!imageData 
+    });
     
     if (!userId) {
-      console.error('No user ID provided');
+      logStep('ERROR: No user ID provided');
       throw new Error('User authentication required');
     }
 
     if (!imageData && !productName) {
-      console.error('No image data or product name provided');
+      logStep('ERROR: No image data or product name provided');
       throw new Error('Either image data or product name is required');
     }
 
     // Get the authorization token from the request
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('No authorization header provided');
+      logStep('ERROR: No authorization header provided');
       throw new Error('Authorization header required');
     }
 
@@ -47,74 +59,89 @@ serve(async (req) => {
         },
       }
     );
-    console.log('Supabase client initialized with user auth');
+    logStep('Supabase client initialized with user auth');
 
     // Check scan usage first
-    console.log('Checking scan usage...');
-    const { data: scanCheck, error: scanError } = await supabase
-      .rpc('increment_scan_usage', {
-        p_user_id: userId,
-        p_product_identified: false // Don't increment yet, just check
-      });
+    logStep('Checking scan usage...');
+    try {
+      const { data: scanCheck, error: scanError } = await supabase
+        .rpc('increment_scan_usage', {
+          p_user_id: userId,
+          p_product_identified: false // Don't increment yet, just check
+        });
 
-    if (scanError) {
-      console.error('Scan usage check error:', scanError);
-      throw new Error(`Failed to check scan usage: ${scanError.message}`);
+      if (scanError) {
+        logStep('Scan usage check error', { error: scanError });
+        throw new Error(`Failed to check scan usage: ${scanError.message}`);
+      }
+
+      const { scans_remaining, is_subscribed } = scanCheck[0];
+      logStep('Scan usage check result', { scans_remaining, is_subscribed });
+
+      // If user has no scans left and is not subscribed, return limit message
+      if (!is_subscribed && scans_remaining <= 0) {
+        logStep('User has reached scan limit');
+        return new Response(JSON.stringify({
+          error: 'scan_limit_reached',
+          message: 'You have reached your monthly scan limit. Please upgrade to continue scanning.',
+          scans_remaining: 0,
+          is_subscribed: false
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 429
+        });
+      }
+    } catch (scanError) {
+      logStep('Scan check failed, continuing with analysis', { error: scanError });
+      // Don't block analysis if scan check fails - just log the error
     }
 
-    const { scans_remaining, is_subscribed } = scanCheck[0];
-    console.log('Scan usage check result:', { scans_remaining, is_subscribed });
+    // Get user's current medications with retry logic
+    logStep('Fetching user medications...');
+    let userMedications = [];
+    try {
+      const { data: medications, error: medicationsError } = await supabase
+        .from('user_medications')
+        .select('medication_name, dosage, frequency, purpose, notes')
+        .eq('user_id', userId);
 
-    // If user has no scans left and is not subscribed, return limit message
-    if (!is_subscribed && scans_remaining <= 0) {
-      console.log('User has reached scan limit');
-      return new Response(JSON.stringify({
-        error: 'scan_limit_reached',
-        message: 'You have reached your monthly scan limit. Please upgrade to continue scanning.',
-        scans_remaining: 0,
-        is_subscribed: false
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 429
-      });
+      if (medicationsError) {
+        logStep('Medications fetch error', { error: medicationsError });
+        // Continue without medications rather than failing
+        userMedications = [];
+      } else {
+        userMedications = medications || [];
+      }
+    } catch (medError) {
+      logStep('Medications fetch failed, continuing without medications', { error: medError });
+      userMedications = [];
     }
 
-    // Get user's current medications
-    console.log('Fetching user medications...');
-    const { data: medications, error: medicationsError } = await supabase
-      .from('user_medications')
-      .select('medication_name, dosage, frequency, purpose, notes')
-      .eq('user_id', userId);
-
-    if (medicationsError) {
-      console.error('Medications fetch error:', medicationsError);
-      throw new Error(`Failed to fetch user medications: ${medicationsError.message}`);
-    }
-
-    console.log('Raw medications data:', medications);
-    console.log('Number of medications found:', medications?.length || 0);
-    const userMedications = medications || [];
+    logStep('User medications loaded', { count: userMedications.length });
     const hasMedications = userMedications.length > 0;
-    console.log('User has medications:', hasMedications);
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     
-    // Always return demo response if token is missing
+    // Create proper demo response if OpenAI key is missing
     if (!openaiApiKey) {
-      console.log('Creating demo response - OpenAI API key not configured');
+      logStep('OpenAI API key not configured, creating demo response');
+      
+      const demoProductName = productName || "Demo Product";
       
       if (!hasMedications) {
         const analysisResult = {
-          productName: productName || "Unknown Product",
-          compatibilityScore: null,
+          productName: demoProductName,
+          compatibilityScore: 85,
           interactionLevel: "neutral" as const,
-          pros: [],
-          cons: [],
+          pros: ["No medications to check interactions with"],
+          cons: ["Add your medications to get personalized interaction analysis"],
+          alternatives: [],
           userMedications: [],
           timestamp: new Date().toISOString(),
-          note: "No medications to analyze interactions with"
+          note: "Please add your medications for personalized analysis"
         };
         
+        logStep('Returning demo response - no medications');
         return new Response(JSON.stringify(analysisResult), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
@@ -122,26 +149,46 @@ serve(async (req) => {
       }
       
       const analysisResult = {
-        productName: productName || "Unknown Product",
+        productName: demoProductName,
         compatibilityScore: 75,
         interactionLevel: "neutral" as const,
-        pros: ["No known interactions with medications listed"],
-        cons: [`Unable to analyze detailed interactions with your ${userMedications.length} medication(s) - API access required`],
+        pros: ["Demo analysis - configure OpenAI API key for detailed results"],
+        cons: [`Limited analysis available for your ${userMedications.length} medication(s) without API access`],
+        alternatives: [],
         userMedications: userMedications.map(med => med.medication_name),
         timestamp: new Date().toISOString(),
         note: "Demo response - configure OpenAI API key for real analysis"
       };
       
-      console.log('Returning demo analysis result');
+      logStep('Returning demo analysis result');
       return new Response(JSON.stringify(analysisResult), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       });
     }
     
-    console.log('OpenAI API key found');
-    console.log('Calling OpenAI API...');
-    console.log('User has medications:', hasMedications);
+    logStep('OpenAI API key found, proceeding with real analysis');
+
+    // Handle case with no medications - return early with appropriate response
+    if (!hasMedications) {
+      const analysisResult = {
+        productName: productName || "Product from image",
+        compatibilityScore: 85,
+        interactionLevel: "neutral" as const,
+        pros: ["No current medications to check interactions with"],
+        cons: ["Add your medications to get personalized food-medication interaction analysis"],
+        alternatives: [],
+        userMedications: [],
+        timestamp: new Date().toISOString(),
+        note: "No medications to analyze interactions with"
+      };
+      
+      logStep('No medications to analyze, returning neutral response');
+      return new Response(JSON.stringify(analysisResult), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
 
     // Create comprehensive medication profile for detailed analysis
     const detailedMedicationProfile = userMedications.map(med => {
@@ -155,34 +202,21 @@ serve(async (req) => {
 
     let analysisPrompt;
     
-    if (!hasMedications) {
-      // No medications to analyze against, return early
-      const analysisResult = {
-        productName: productName || "Food or beverage from image",
-        compatibilityScore: null,
-        interactionLevel: "neutral" as const,
-        pros: [],
-        cons: ["Add your current medications to get personalized food-medication interaction analysis"],
-        userMedications: [],
-        timestamp: new Date().toISOString(),
-        note: "No medications to analyze interactions with"
-      };
-      
-      return new Response(JSON.stringify(analysisResult), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      });
-    }
-
     if (imageData) {
+      // Validate image data format
+      if (!imageData.startsWith('data:image/')) {
+        logStep('ERROR: Invalid image data format');
+        throw new Error('Invalid image data format provided');
+      }
+      
       analysisPrompt = `You are a clinical pharmacist with expertise in food-drug interactions. Analyze this food/product image for potential interactions with the following medications:
 
 PATIENT MEDICATION PROFILE:
 ${detailedMedicationProfile}
 
 ANALYSIS REQUIREMENTS:
-1. First identify the food/product in the image. If unclear, return productName: "Sorry, we couldn't catch that" and compatibilityScore: null.
-2. For each medication, research and consider:
+1. First identify the food/product in the image. If unclear or not a real food/product, return productName: "Sorry, we couldn't catch that" and compatibilityScore: null.
+2. For identified foods/products, research and consider:
    - Known food-drug interactions based on clinical evidence
    - Effects on medication absorption (timing, bioavailability)
    - Potential for increased/decreased medication effects
@@ -256,7 +290,7 @@ Return ONLY valid JSON with:
     let analysisResult;
 
     try {
-      console.log('Attempting OpenAI vision analysis...');
+      logStep('Calling OpenAI API for analysis...');
       
       // Call OpenAI API - use vision model if image, otherwise text model
       const requestBody = imageData ? {
@@ -299,13 +333,14 @@ Return ONLY valid JSON with:
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        logStep('OpenAI API error', { status: response.status, error: errorText });
         throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       const aiResponseText = data.choices[0].message.content;
-
-      console.log('OpenAI analysis response:', aiResponseText);
+      logStep('OpenAI response received', { responseLength: aiResponseText?.length });
       
       // Try to extract JSON from the response
       let jsonContent = aiResponseText.trim();
@@ -316,90 +351,90 @@ Return ONLY valid JSON with:
       // Try to parse as JSON
       try {
         analysisResult = JSON.parse(jsonContent);
-        console.log('Successfully parsed OpenAI response');
+        logStep('Successfully parsed OpenAI response');
       } catch (jsonError) {
-        console.error('JSON parsing failed:', jsonError);
+        logStep('JSON parsing failed', { error: jsonError, content: jsonContent.substring(0, 200) });
         throw new Error('Response is not valid JSON');
       }
       
     } catch (apiError) {
-      console.error('OpenAI API error:', apiError);
-      console.log('Falling back to demo response due to API error');
+      logStep('OpenAI API error occurred', { error: apiError });
       
       // Create fallback response when API fails
       analysisResult = {
-        productName: "Unable to analyze at this time",
+        productName: productName || "Unable to analyze at this time",
         compatibilityScore: null,
         interactionLevel: "neutral" as const,
         pros: [],
         cons: [
-          "Please try again later",
+          "Analysis temporarily unavailable - please try again later",
           "Consult with a pharmacist about food-drug interactions"
         ],
+        alternatives: [],
         userMedications: userMedications.map(med => med.medication_name),
         timestamp: new Date().toISOString(),
-        note: "Analysis temporarily unavailable"
+        note: "Analysis temporarily unavailable due to service error"
       };
       
+      logStep('Returning fallback response due to API error');
       return new Response(JSON.stringify(analysisResult), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       });
     }
 
-    // Validate required fields and ensure arrays are arrays
+    // Validate and clean up the response
     if (!analysisResult.productName || !analysisResult.interactionLevel) {
-      console.error('Missing required fields in OpenAI response');
+      logStep('ERROR: Missing required fields in OpenAI response', { result: analysisResult });
       throw new Error('Missing required fields in AI response');
     }
     
-    // Ensure arrays are arrays and score is valid
+    // Ensure arrays are arrays and handle null/undefined values
     if (!Array.isArray(analysisResult.pros)) {
-      analysisResult.pros = [analysisResult.pros].filter(Boolean);
+      analysisResult.pros = analysisResult.pros ? [analysisResult.pros].filter(Boolean) : [];
     }
     if (!Array.isArray(analysisResult.cons)) {
-      analysisResult.cons = [analysisResult.cons].filter(Boolean);
+      analysisResult.cons = analysisResult.cons ? [analysisResult.cons].filter(Boolean) : [];
     }
     if (!Array.isArray(analysisResult.alternatives)) {
       analysisResult.alternatives = [];
     }
     
     // Only assign default score if product was identified and score is not a number
-    // Don't assign score if product couldn't be identified
     if (typeof analysisResult.compatibilityScore !== 'number' && 
-        analysisResult.productName !== "Sorry, we couldn't catch that") {
+        analysisResult.productName !== "Sorry, we couldn't catch that" &&
+        analysisResult.productName !== "Unable to analyze at this time") {
       analysisResult.compatibilityScore = 75; // Default neutral score for identified products
     }
-
-    // Keep AI-generated recommendations as they are more contextual and detailed
 
     // Check if product was successfully identified
     const productIdentified = analysisResult.productName && 
                               analysisResult.productName !== "Sorry, we couldn't catch that" &&
                               analysisResult.productName !== "Unable to analyze at this time";
 
-    // Increment scan usage if product was identified
+    // Try to increment scan usage if product was identified (with error handling)
     if (productIdentified) {
-      console.log('Product was identified, incrementing scan usage');
+      logStep('Product was identified, incrementing scan usage');
       try {
         await supabase.rpc('increment_scan_usage', {
           p_user_id: userId,
           p_product_identified: true
         });
+        logStep('Scan usage incremented successfully');
       } catch (incrementError) {
-        console.error('Failed to increment scan usage:', incrementError);
+        logStep('Failed to increment scan usage', { error: incrementError });
         // Don't fail the request if increment fails
       }
     } else {
-      console.log('Product was not identified, not incrementing scan usage');
+      logStep('Product was not identified, not incrementing scan usage');
     }
 
     // Add metadata
     analysisResult.userMedications = userMedications.map(med => med.medication_name);
     analysisResult.timestamp = new Date().toISOString();
     
-    // Save analysis to history
-    if (analysisType) {
+    // Try to save analysis to history (with error handling)
+    if (analysisType && productIdentified) {
       try {
         await supabase.from('food_analysis_history').insert({
           user_id: userId,
@@ -410,14 +445,19 @@ Return ONLY valid JSON with:
           warnings: analysisResult.cons || [],
           recommendations: analysisResult.pros || []
         });
+        logStep('Analysis saved to history');
       } catch (historyError) {
-        console.error('Failed to save analysis history:', historyError);
+        logStep('Failed to save analysis history', { error: historyError });
         // Don't fail the request if history save fails
       }
     }
     
-    console.log('Final analysis result:', analysisResult);
-    console.log('=== FOOD-MEDICATION INTERACTION ANALYSIS COMPLETE ===');
+    logStep('Analysis completed successfully', { 
+      productName: analysisResult.productName,
+      score: analysisResult.compatibilityScore,
+      level: analysisResult.interactionLevel
+    });
+    logStep('=== FOOD-MEDICATION INTERACTION ANALYSIS COMPLETE ===');
     
     return new Response(JSON.stringify(analysisResult), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -425,9 +465,11 @@ Return ONLY valid JSON with:
     });
 
   } catch (error) {
-    console.error('=== FOOD-MEDICATION INTERACTION ANALYSIS ERROR ===');
-    console.error('Error details:', error);
-    console.error('Error stack:', error.stack);
+    logStep('=== FOOD-MEDICATION INTERACTION ANALYSIS ERROR ===');
+    logStep('Error details', { 
+      message: error.message,
+      stack: error.stack?.substring(0, 500)
+    });
     
     return new Response(JSON.stringify({ 
       error: 'Analysis failed', 
