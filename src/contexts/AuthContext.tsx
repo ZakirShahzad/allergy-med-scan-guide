@@ -16,6 +16,7 @@ interface AuthContextType {
     scans_used_this_month: number;
   };
   refreshSubscription: () => Promise<void>;
+  updateScanUsage: (scanData: { scans_remaining: number; is_subscribed: boolean }) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -201,6 +202,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await supabase.auth.signOut();
   };
 
+  const updateScanUsage = useCallback((newScanData: { scans_remaining: number; is_subscribed: boolean }) => {
+    setSubscriptionData(prev => {
+      // Calculate scans_used_this_month based on remaining scans
+      const FREE_SCAN_LIMIT = 5;
+      const BASIC_SCAN_LIMIT = 50;
+      
+      let scansUsed;
+      if (newScanData.is_subscribed) {
+        // For Premium/Enterprise (unlimited), keep the current value or increment by 1
+        scansUsed = prev.subscription_tier === 'Basic' ? 
+          BASIC_SCAN_LIMIT - newScanData.scans_remaining : 
+          prev.scans_used_this_month + 1;
+      } else {
+        // For free users
+        scansUsed = FREE_SCAN_LIMIT - newScanData.scans_remaining;
+      }
+      
+      return {
+        ...prev,
+        scans_used_this_month: Math.max(0, scansUsed),
+        subscribed: newScanData.is_subscribed
+      };
+    });
+  }, []);
+
   const value = {
     user,
     session,
@@ -209,7 +235,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signOut,
     loading,
     subscriptionData,
-    refreshSubscription
+    refreshSubscription,
+    updateScanUsage
   };
 
   return (

@@ -413,14 +413,20 @@ Return ONLY valid JSON with:
                               analysisResult.productName !== "Unable to analyze at this time";
 
     // Try to increment scan usage if product was identified (with error handling)
+    let scanData = null;
     if (productIdentified) {
       logStep('Product was identified, incrementing scan usage');
       try {
-        await supabase.rpc('increment_scan_usage', {
-          p_user_id: userId,
-          p_product_identified: true
-        });
-        logStep('Scan usage incremented successfully');
+        const { data: scanResult, error: scanError } = await supabase
+          .rpc('increment_scan_usage', {
+            p_user_id: userId,
+            p_product_identified: true
+          });
+        
+        if (!scanError && scanResult && scanResult.length > 0) {
+          scanData = scanResult[0];
+          logStep('Scan usage incremented successfully', scanData);
+        }
       } catch (incrementError) {
         logStep('Failed to increment scan usage', { error: incrementError });
         // Don't fail the request if increment fails
@@ -432,6 +438,11 @@ Return ONLY valid JSON with:
     // Add metadata
     analysisResult.userMedications = userMedications.map(med => med.medication_name);
     analysisResult.timestamp = new Date().toISOString();
+    
+    // Include scan data if available
+    if (scanData) {
+      analysisResult.scanData = scanData;
+    }
     
     // Try to save analysis to history (with error handling)
     if (analysisType && productIdentified) {
@@ -455,7 +466,8 @@ Return ONLY valid JSON with:
     logStep('Analysis completed successfully', { 
       productName: analysisResult.productName,
       score: analysisResult.compatibilityScore,
-      level: analysisResult.interactionLevel
+      level: analysisResult.interactionLevel,
+      scanData: scanData
     });
     logStep('=== FOOD-MEDICATION INTERACTION ANALYSIS COMPLETE ===');
     

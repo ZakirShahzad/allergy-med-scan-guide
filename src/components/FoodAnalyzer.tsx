@@ -16,6 +16,10 @@ interface AnalysisResult {
   cons: string[];
   userMedications: string[];
   timestamp: string;
+  scanData?: {
+    scans_remaining: number;
+    is_subscribed: boolean;
+  };
 }
 
 interface FoodAnalyzerProps {
@@ -23,7 +27,7 @@ interface FoodAnalyzerProps {
 }
 
 const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
-  const { user } = useAuth();
+  const { user, updateScanUsage } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [productName, setProductName] = useState('');
@@ -105,6 +109,12 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
       }
 
       console.log('Analysis completed successfully:', data);
+      
+      // Update scan usage if scan data is available
+      if (data?.scanData) {
+        updateScanUsage(data.scanData);
+      }
+      
       onAnalysisComplete(data);
     } catch (error: any) {
       console.error('Analysis error:', error);
