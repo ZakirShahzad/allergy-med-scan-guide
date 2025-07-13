@@ -15,6 +15,31 @@ const Billing = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
 
+  // Listen for messages from payment windows
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      
+      if (event.data.type === 'PAYMENT_SUCCESS') {
+        toast({
+          title: "Payment successful!",
+          description: "Refreshing subscription...",
+        });
+        setTimeout(() => {
+          refreshSubscription();
+        }, 1000);
+      } else if (event.data.type === 'PAYMENT_CANCELLED') {
+        toast({
+          title: "Payment cancelled",
+          description: "Your payment was cancelled.",
+        });
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [refreshSubscription, toast]);
+
   const handleRefreshSubscription = async () => {
     try {
       await refreshSubscription();
@@ -153,36 +178,6 @@ const Billing = () => {
     }
   };
 
-  const handleCancelSubscription = async () => {
-    if (!confirm('Are you sure you want to cancel your subscription? This action cannot be undone.')) {
-      return;
-    }
-
-    setLoading('cancel');
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('cancel-subscription');
-      
-      if (error) throw error;
-
-      toast({
-        title: "Subscription cancelled",
-        description: "Your subscription has been cancelled successfully.",
-      });
-
-      // Refresh subscription data
-      await handleRefreshSubscription();
-    } catch (error) {
-      console.error('Error cancelling subscription:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to cancel subscription. Please try again.",
-      });
-    } finally {
-      setLoading(null);
-    }
-  };
 
   if (!user) {
     return (
@@ -250,25 +245,10 @@ const Billing = () => {
                       }
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleManageSubscription} className="gap-2 flex-1">
-                      <Settings className="w-4 h-4" />
-                      Manage Subscription
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      onClick={handleCancelSubscription} 
-                      disabled={loading === 'cancel'}
-                      className="gap-2 flex-1"
-                    >
-                      {loading === 'cancel' ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <X className="w-4 h-4" />
-                      )}
-                      Cancel Subscription
-                    </Button>
-                  </div>
+                  <Button variant="outline" onClick={handleManageSubscription} className="gap-2 w-full">
+                    <Settings className="w-4 h-4" />
+                    Manage Subscription
+                  </Button>
                 </div>
               </CardContent>
             </Card>
