@@ -1,11 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Camera, Upload, Search, Scan, Loader2, X } from 'lucide-react';
+import { Camera, Upload, Search, Scan, Loader2, X, Pill } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AnalysisResult {
@@ -34,10 +34,39 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [hasMedications, setHasMedications] = useState(false);
+  const [checkingMedications, setCheckingMedications] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (user) {
+      checkMedications();
+    }
+  }, [user]);
+
+  const checkMedications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_medications')
+        .select('id')
+        .eq('user_id', user?.id)
+        .limit(1);
+
+      if (error) {
+        console.error('Error checking medications:', error);
+        return;
+      }
+
+      setHasMedications(data && data.length > 0);
+      setCheckingMedications(false);
+    } catch (error) {
+      console.error('Error checking medications:', error);
+      setCheckingMedications(false);
+    }
+  };
 
   const analyzeProduct = async (analysisType: string, imageData?: string, searchTerm?: string) => {
     if (!user) {
@@ -236,6 +265,46 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Analyzing Product</h3>
         <p className="text-gray-600">Checking for interactions with your medications...</p>
+      </div>
+    );
+  }
+
+  if (checkingMedications) {
+    return (
+      <div className="text-center py-12">
+        <div className="bg-gray-100 p-4 rounded-full inline-block mb-4">
+          <Loader2 className="w-8 h-8 text-gray-600 animate-spin" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading...</h3>
+        <p className="text-gray-600">Checking your medications...</p>
+      </div>
+    );
+  }
+
+  if (!hasMedications) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Analyze Food & Products</h2>
+          <p className="text-sm sm:text-base text-gray-600">
+            Check how foods and products interact with your medications
+          </p>
+        </div>
+        
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+          <div className="bg-gray-100 p-4 rounded-full inline-block mb-4">
+            <Pill className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Your Medications First</h3>
+          <p className="text-gray-600 mb-4">
+            To analyze food and product interactions, you need to add your medications first. 
+            This ensures accurate and personalized results.
+          </p>
+          <p className="text-sm text-gray-500">
+            Once you've added your medications, you'll be able to use the camera, upload images, 
+            search for products, and scan barcodes.
+          </p>
+        </div>
       </div>
     );
   }

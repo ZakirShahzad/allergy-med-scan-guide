@@ -69,7 +69,7 @@ const Index = () => {
           <SubscriptionStatus />
           
           {activeTab === 'analyzer' && (
-            <div>
+            <div className="space-y-6">
               <MedicationReminderBanner onGoToMedications={() => setActiveTab('medications')} />
               {!analysisResult ? (
                 <FoodAnalyzer onAnalysisComplete={handleAnalysisComplete} />
