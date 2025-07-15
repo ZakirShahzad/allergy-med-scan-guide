@@ -8,22 +8,17 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Check, Crown, Shield, Users, Zap, CreditCard, Settings, X, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 const Billing = () => {
-  const { user, subscriptionData, refreshSubscription } = useAuth();
+  const {
+    user,
+    subscriptionData,
+    refreshSubscription
+  } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
 
@@ -31,11 +26,10 @@ const Billing = () => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
-      
       if (event.data.type === 'PAYMENT_SUCCESS') {
         toast({
           title: "Payment successful!",
-          description: "Refreshing subscription...",
+          description: "Refreshing subscription..."
         });
         setTimeout(() => {
           refreshSubscription();
@@ -43,150 +37,131 @@ const Billing = () => {
       } else if (event.data.type === 'PAYMENT_CANCELLED') {
         toast({
           title: "Payment cancelled",
-          description: "Your payment was cancelled.",
+          description: "Your payment was cancelled."
         });
       }
     };
-
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [refreshSubscription, toast]);
-
   const handleRefreshSubscription = async () => {
     try {
       await refreshSubscription();
       toast({
         title: "Subscription refreshed",
-        description: "Your subscription status has been updated.",
+        description: "Your subscription status has been updated."
       });
     } catch (error) {
       console.error('Error refreshing subscription:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to refresh subscription status.",
+        description: "Failed to refresh subscription status."
       });
     }
   };
-
-  const plans = [
-    {
-      id: 'free',
-      name: 'Free Trial',
-      price: 0,
-      interval: 'forever',
-      features: [
-        '5 medication scans per month',
-        'Basic medication analysis',
-        'Safety warnings and alerts'
-      ],
-      badge: null,
-      popular: false,
-      icon: Zap,
-      description: 'Perfect for trying out our medication safety features'
-    },
-    {
-      id: 'basic',
-      name: 'Basic',
-      price: 9.99,
-      interval: 'month',
-      features: [
-        '50 medication scans per month',
-        'Complete medication analysis',
-        'Safety warnings and alerts'
-      ],
-      badge: null,
-      popular: false,
-      icon: Shield
-    },
-    {
-      id: 'premium',
-      name: 'Premium',
-      price: 19.99,
-      interval: 'month',
-      features: [
-        'Unlimited medication scans',
-        'Complete medication analysis',
-        'Safety warnings and alerts'
-      ],
-      badge: 'Most Popular',
-      popular: true,
-      icon: Crown
-    }
-  ];
-
+  const plans = [{
+    id: 'free',
+    name: 'Free Trial',
+    price: 0,
+    interval: 'forever',
+    features: ['5 medication scans per month', 'Basic medication analysis', 'Safety warnings and alerts'],
+    badge: null,
+    popular: false,
+    icon: Zap,
+    description: 'Perfect for trying out our medication safety features'
+  }, {
+    id: 'basic',
+    name: 'Basic',
+    price: 9.99,
+    interval: 'month',
+    features: ['50 medication scans per month', 'Complete medication analysis', 'Safety warnings and alerts'],
+    badge: null,
+    popular: false,
+    icon: Shield
+  }, {
+    id: 'premium',
+    name: 'Premium',
+    price: 19.99,
+    interval: 'month',
+    features: ['Unlimited medication scans', 'Complete medication analysis', 'Safety warnings and alerts'],
+    badge: 'Most Popular',
+    popular: true,
+    icon: Crown
+  }];
   const handleSubscribe = async (planId: string) => {
     if (!user) {
       toast({
         variant: "destructive",
         title: "Authentication required",
-        description: "Please sign in to subscribe to a plan.",
+        description: "Please sign in to subscribe to a plan."
       });
       navigate('/auth');
       return;
     }
-
     setLoading(planId);
-    
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { planId }
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          planId
+        }
       });
-
       if (error) throw error;
 
       // Open Stripe checkout in a new tab
       window.open(data.url, '_blank');
-      
       toast({
         title: "Redirecting to checkout",
-        description: "You'll be redirected to our secure payment page.",
+        description: "You'll be redirected to our secure payment page."
       });
     } catch (error) {
       console.error('Error creating checkout:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create checkout session. Please try again.",
+        description: "Failed to create checkout session. Please try again."
       });
     } finally {
       setLoading(null);
     }
   };
-
   const handleManageSubscription = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-      
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('customer-portal');
       if (error) throw error;
 
       // Open customer portal in a new tab
       window.open(data.url, '_blank');
-      
       toast({
         title: "Opening billing portal",
-        description: "You'll be redirected to manage your subscription.",
+        description: "You'll be redirected to manage your subscription."
       });
     } catch (error) {
       console.error('Error opening customer portal:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to open billing portal. Please try again.",
+        description: "Failed to open billing portal. Please try again."
       });
     }
   };
-
   const handleCancelSubscription = async () => {
     setCancelLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('cancel-subscription');
-      
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('cancel-subscription');
       if (error) throw error;
-
       toast({
         title: "Subscription cancelled",
-        description: "Your subscription has been cancelled successfully. You'll continue to have access until the end of your billing period.",
+        description: "Your subscription has been cancelled successfully. You'll continue to have access until the end of your billing period."
       });
 
       // Refresh subscription status
@@ -196,17 +171,14 @@ const Billing = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to cancel subscription. Please try again.",
+        description: "Failed to cancel subscription. Please try again."
       });
     } finally {
       setCancelLoading(false);
     }
   };
-
-
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex items-center justify-center">
+    return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Sign In Required</CardTitle>
@@ -220,20 +192,12 @@ const Billing = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50">
+  return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center gap-4 mb-8">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate('/')}
-            className="gap-2"
-          >
+          <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="gap-2">
             <ArrowLeft className="w-4 h-4" />
             Back to Flikkt
           </Button>
@@ -251,8 +215,7 @@ const Billing = () => {
           </div>
 
           {/* Current Subscription Status */}
-          {subscriptionData.subscribed && (
-            <Card className="border-success bg-success-lighter">
+          {subscriptionData.subscribed && <Card className="border-success bg-success-lighter">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Check className="w-5 h-5 text-success" />
@@ -264,10 +227,7 @@ const Billing = () => {
                   <div>
                     <p className="font-semibold">{subscriptionData.subscription_tier || 'Basic'} Plan</p>
                     <p className="text-sm text-gray-600">
-                      {subscriptionData.subscription_end 
-                        ? `Renews on ${new Date(subscriptionData.subscription_end).toLocaleDateString()}`
-                        : 'Active subscription'
-                      }
+                      {subscriptionData.subscription_end ? `Renews on ${new Date(subscriptionData.subscription_end).toLocaleDateString()}` : 'Active subscription'}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -291,27 +251,16 @@ const Billing = () => {
                           <AlertDialogDescription>
                             Are you sure you want to cancel your subscription? You'll continue to have access 
                             to your current plan features until the end of your billing period 
-                            ({subscriptionData.subscription_end 
-                              ? new Date(subscriptionData.subscription_end).toLocaleDateString()
-                              : 'current billing cycle'
-                            }).
+                            ({subscriptionData.subscription_end ? new Date(subscriptionData.subscription_end).toLocaleDateString() : 'current billing cycle'}).
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={handleCancelSubscription}
-                            disabled={cancelLoading}
-                            className="bg-destructive hover:bg-destructive/90"
-                          >
-                            {cancelLoading ? (
-                              <div className="flex items-center gap-2">
+                          <AlertDialogAction onClick={handleCancelSubscription} disabled={cancelLoading} className="bg-destructive hover:bg-destructive/90">
+                            {cancelLoading ? <div className="flex items-center gap-2">
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 Cancelling...
-                              </div>
-                            ) : (
-                              'Yes, Cancel Subscription'
-                            )}
+                              </div> : 'Yes, Cancel Subscription'}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -319,39 +268,26 @@ const Billing = () => {
                   </div>
                 </div>
               </CardContent>
-            </Card>
-          )}
+            </Card>}
 
 
           {/* Pricing Plans */}
           <div className="grid md:grid-cols-3 gap-8 justify-center">
-            {plans.map((plan) => {
-              const Icon = plan.icon;
-              const isCurrentPlan = 
-                (plan.id === 'free' && !subscriptionData.subscribed) ||
-                (plan.id === 'basic' && subscriptionData.subscribed && subscriptionData.subscription_tier === 'Basic') ||
-                (plan.id === 'premium' && subscriptionData.subscribed && subscriptionData.subscription_tier === 'Premium');
-              
-              return (
-                <Card 
-                  key={plan.id} 
-                  className={`relative ${plan.popular ? 'border-blue-500 border-2 shadow-lg' : ''} ${isCurrentPlan ? 'border-green-500 border-2 bg-green-50' : ''}`}
-                >
-                  {plan.badge && !isCurrentPlan && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+            {plans.map(plan => {
+            const Icon = plan.icon;
+            const isCurrentPlan = plan.id === 'free' && !subscriptionData.subscribed || plan.id === 'basic' && subscriptionData.subscribed && subscriptionData.subscription_tier === 'Basic' || plan.id === 'premium' && subscriptionData.subscribed && subscriptionData.subscription_tier === 'Premium';
+            return <Card key={plan.id} className={`relative ${plan.popular ? 'border-blue-500 border-2 shadow-lg' : ''} ${isCurrentPlan ? 'border-green-500 border-2 bg-green-50' : ''}`}>
+                  {plan.badge && !isCurrentPlan && <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <Badge variant="default" className="bg-blue-600 text-white">
                         {plan.badge}
                       </Badge>
-                    </div>
-                  )}
+                    </div>}
                   
-                  {isCurrentPlan && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  {isCurrentPlan && <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <Badge variant="default" className="bg-green-600 text-white">
                         Current Plan
                       </Badge>
-                    </div>
-                  )}
+                    </div>}
                   
                   <CardHeader className="text-center">
                     <div className="flex justify-center mb-4">
@@ -370,54 +306,28 @@ const Billing = () => {
                   
                   <CardContent>
                     <ul className="space-y-3 mb-6">
-                      {plan.features.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2">
+                      {plan.features.map((feature, index) => <li key={index} className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-success flex-shrink-0" />
                           <span className="text-sm text-gray-700">{feature}</span>
-                        </li>
-                      ))}
+                        </li>)}
                     </ul>
                     
-                    {isCurrentPlan ? (
-                      <Button 
-                        variant="outline"
-                        className="w-full"
-                        disabled
-                      >
+                    {isCurrentPlan ? <Button variant="outline" className="w-full" disabled>
                         Current Plan
-                      </Button>
-                    ) : plan.id === 'free' ? (
-                      <Button 
-                        variant="outline"
-                        className="w-full"
-                        disabled
-                      >
+                      </Button> : plan.id === 'free' ? <Button variant="outline" className="w-full" disabled>
                         Free Trial
-                      </Button>
-                    ) : (
-                      <Button 
-                        onClick={() => handleSubscribe(plan.id)}
-                        disabled={loading === plan.id}
-                        className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
-                        variant={plan.popular ? 'default' : 'outline'}
-                      >
-                        {loading === plan.id ? (
-                          <div className="flex items-center gap-2">
+                      </Button> : <Button onClick={() => handleSubscribe(plan.id)} disabled={loading === plan.id} className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`} variant={plan.popular ? 'default' : 'outline'}>
+                        {loading === plan.id ? <div className="flex items-center gap-2">
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                             Processing...
-                          </div>
-                        ) : (
-                          <>
+                          </div> : <>
                             <CreditCard className="w-4 h-4 mr-2" />
                             Subscribe to {plan.name}
-                          </>
-                        )}
-                      </Button>
-                    )}
+                          </>}
+                      </Button>}
                   </CardContent>
-                </Card>
-              );
-            })}
+                </Card>;
+          })}
           </div>
 
           {/* FAQ Section */}
@@ -476,32 +386,10 @@ const Billing = () => {
 
           {/* Trust Indicators */}
           <Card className="mt-8 border-success bg-success-lighter">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold mb-4">Trusted by Healthcare Professionals</h3>
-                <div className="flex justify-center items-center gap-8 text-gray-600">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-success">99.9%</div>
-                    <div className="text-sm">Uptime</div>
-                  </div>
-                  <Separator orientation="vertical" className="h-8" />
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-success">256-bit</div>
-                    <div className="text-sm">SSL Encryption</div>
-                  </div>
-                  <Separator orientation="vertical" className="h-8" />
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-success">HIPAA</div>
-                    <div className="text-sm">Compliant</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
+            
           </Card>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Billing;
