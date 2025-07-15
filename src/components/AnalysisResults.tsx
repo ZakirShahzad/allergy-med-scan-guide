@@ -307,7 +307,8 @@ const AnalysisResults = ({ result, onNewAnalysis }: AnalysisResultsProps) => {
               <p className="text-blue-800 text-sm">
                 This analysis is for informational purposes only and should not replace professional medical advice. 
                 Always consult with your healthcare provider or pharmacist about food-drug interactions, especially 
-                before making significant dietary changes while taking medications.
+                before making significant dietary changes while taking medications. Note: Cancelling your subscription 
+                will immediately remove access to remaining scans.
               </p>
             </div>
           </div>

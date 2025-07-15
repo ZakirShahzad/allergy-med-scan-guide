@@ -189,6 +189,7 @@ const AnalysisResults = () => {
                 <p className="text-blue-800 text-sm">
                   This analysis is for informational purposes only and should not replace professional medical advice. 
                   Always consult with a healthcare professional before taking any medication, especially if you have allergies or medical conditions.
+                  Note: Cancelling your subscription will immediately remove access to remaining scans.
                 </p>
               </div>
             </div>
