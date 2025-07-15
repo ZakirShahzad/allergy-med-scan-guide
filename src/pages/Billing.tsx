@@ -77,10 +77,8 @@ const Billing = () => {
       interval: 'forever',
       features: [
         '5 medication scans per month',
-        'Basic drug interaction analysis',
-        'Limited allergy checking',
-        'Community support only',
-        'Basic safety warnings'
+        'Basic medication analysis',
+        'Safety warnings and alerts'
       ],
       badge: null,
       popular: false,
@@ -94,10 +92,8 @@ const Billing = () => {
       interval: 'month',
       features: [
         '50 medication scans per month',
-        'Basic drug interaction analysis',
-        'Allergy checking',
-        'Email support',
-        'Basic medication reminders'
+        'Complete medication analysis',
+        'Safety warnings and alerts'
       ],
       badge: null,
       popular: false,
@@ -110,17 +106,8 @@ const Billing = () => {
       interval: 'month',
       features: [
         'Unlimited medication scans',
-        'Advanced drug interaction analysis with detailed recommendations',
-        'Comprehensive allergy checking with severity levels',
-        'Priority 24/7 support with pharmacist consultation',
-        'Smart medication reminders with customizable schedules',
-        'Emergency sharing with family and healthcare providers',
-        'Detailed health reports with trend analysis',
-        'Medicine expiration tracking with auto-alerts',
-        'Alternative product suggestions for high-risk items',
-        'Advanced AI-powered interaction detection',
-        'Personalized medication timing optimization',
-        'Integration with electronic health records'
+        'Complete medication analysis',
+        'Safety warnings and alerts'
       ],
       badge: 'Most Popular',
       popular: true,
