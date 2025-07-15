@@ -374,10 +374,7 @@ const Billing = () => {
                   <CardTitle className="text-lg">Can I upgrade or downgrade?</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-600">
-                    Yes, you can change your plan at any time. Upgrades take effect immediately, 
-                    while downgrades take effect at the next billing cycle.
-                  </p>
+                  <p className="text-gray-600">Yes, you can change your plan at any time. Upgrades and downgrades take effect immediately.</p>
                 </CardContent>
               </Card>
             </div>
