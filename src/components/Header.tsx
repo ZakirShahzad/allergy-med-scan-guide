@@ -1,5 +1,5 @@
 
-import { Utensils, User, Settings, LogOut, CreditCard } from 'lucide-react';
+import { Pill, User, Settings, LogOut, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,8 +19,8 @@ const Header = () => {
     <header className="bg-white shadow-sm border-b border-gray-100">
       <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
         <div className="flex items-center space-x-2 sm:space-x-3">
-          <div className="bg-green-600 p-1.5 sm:p-2 rounded-xl">
-            <Utensils className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <div className="bg-success p-1.5 sm:p-2 rounded-xl">
+            <Pill className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-gray-900">Flikkt</h1>
