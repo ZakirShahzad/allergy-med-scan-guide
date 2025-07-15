@@ -161,7 +161,7 @@ const Billing = () => {
       if (error) throw error;
       toast({
         title: "Subscription cancelled",
-        description: "Your subscription has been cancelled successfully. You'll continue to have access until the end of your billing period."
+        description: "Your subscription has been cancelled successfully. Your access to premium features has been removed."
       });
 
       // Refresh subscription status
@@ -249,9 +249,8 @@ const Billing = () => {
                             Cancel Subscription
                           </AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to cancel your subscription? You'll continue to have access 
-                            to your current plan features until the end of your billing period 
-                            ({subscriptionData.subscription_end ? new Date(subscriptionData.subscription_end).toLocaleDateString() : 'current billing cycle'}).
+                            Are you sure you want to cancel your subscription? Your access to premium 
+                            scan limits will be removed immediately upon cancellation.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -340,8 +339,8 @@ const Billing = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600">
-                    Yes, you can cancel your subscription at any time. You'll continue to have access 
-                    to your plan features until the end of your current billing period.
+                    Yes, you can cancel your subscription at any time. When you cancel, your access 
+                    to premium scan limits will be removed immediately.
                   </p>
                 </CardContent>
               </Card>
