@@ -88,13 +88,20 @@ serve(async (req) => {
       });
     }
 
-    // Update the subscribers table - keep subscribed true until end of billing period
+    // Get current subscription tier before cancelling
+    const { data: currentSubscriber } = await supabaseClient
+      .from("subscribers")
+      .select("subscription_tier")
+      .eq("user_id", user.id)
+      .single();
+
+    // Update the subscribers table - keep subscribed true and tier until end of billing period
     await supabaseClient.from("subscribers").upsert({
       email: user.email,
       user_id: user.id,
       stripe_customer_id: customerId,
       subscribed: true, // Keep true until billing period ends
-      subscription_tier: null, // Clear tier to indicate cancelled
+      subscription_tier: currentSubscriber?.subscription_tier || null, // Keep current tier benefits
       subscription_end: subscriptionEndDate?.toISOString() || null,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'email' });
