@@ -66,25 +66,44 @@ serve(async (req) => {
 
     // Cancel all active subscriptions for this customer
     const cancelledSubscriptions = [];
+    let subscriptionEndDate = null;
+    
     for (const subscription of subscriptions.data) {
       logStep("Cancelling subscription", { subscriptionId: subscription.id });
       const cancelledSub = await stripe.subscriptions.cancel(subscription.id);
       cancelledSubscriptions.push(cancelledSub);
-      logStep("Subscription cancelled", { subscriptionId: cancelledSub.id, status: cancelledSub.status });
+      
+      // Keep track of when the subscription period ends
+      if (cancelledSub.current_period_end) {
+        const endDate = new Date(cancelledSub.current_period_end * 1000);
+        if (!subscriptionEndDate || endDate > subscriptionEndDate) {
+          subscriptionEndDate = endDate;
+        }
+      }
+      
+      logStep("Subscription cancelled", { 
+        subscriptionId: cancelledSub.id, 
+        status: cancelledSub.status,
+        current_period_end: subscriptionEndDate?.toISOString()
+      });
     }
 
-    // Update the subscribers table to reflect the cancellation
+    // Update the subscribers table - keep subscribed true until end of billing period
     await supabaseClient.from("subscribers").upsert({
       email: user.email,
       user_id: user.id,
       stripe_customer_id: customerId,
-      subscribed: false,
-      subscription_tier: null,
-      subscription_end: null,
+      subscribed: true, // Keep true until billing period ends
+      subscription_tier: null, // Clear tier to indicate cancelled
+      subscription_end: subscriptionEndDate?.toISOString() || null,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'email' });
 
-    logStep("Updated database with cancellation", { subscribed: false });
+    logStep("Updated database with cancellation", { 
+      subscribed: true, 
+      subscription_end: subscriptionEndDate?.toISOString(),
+      message: "User will retain access until billing period ends"
+    });
 
     return new Response(JSON.stringify({
       success: true,
