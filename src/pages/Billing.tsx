@@ -6,14 +6,26 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Check, Crown, Shield, Users, Zap, CreditCard, Settings, X } from 'lucide-react';
+import { ArrowLeft, Check, Crown, Shield, Users, Zap, CreditCard, Settings, X, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Billing = () => {
   const { user, subscriptionData, refreshSubscription } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   // Listen for messages from payment windows
   useEffect(() => {
@@ -178,6 +190,32 @@ const Billing = () => {
     }
   };
 
+  const handleCancelSubscription = async () => {
+    setCancelLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('cancel-subscription');
+      
+      if (error) throw error;
+
+      toast({
+        title: "Subscription cancelled",
+        description: "Your subscription has been cancelled successfully. You'll continue to have access until the end of your billing period.",
+      });
+
+      // Refresh subscription status
+      await refreshSubscription();
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to cancel subscription. Please try again.",
+      });
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
 
   if (!user) {
     return (
@@ -245,10 +283,53 @@ const Billing = () => {
                       }
                     </p>
                   </div>
-                  <Button variant="outline" onClick={handleManageSubscription} className="gap-2 w-full">
-                    <Settings className="w-4 h-4" />
-                    Manage Subscription
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleManageSubscription} className="gap-2 flex-1">
+                      <Settings className="w-4 h-4" />
+                      Manage Subscription
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" className="gap-2 flex-1">
+                          <X className="w-4 h-4" />
+                          Cancel
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-destructive" />
+                            Cancel Subscription
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to cancel your subscription? You'll continue to have access 
+                            to your current plan features until the end of your billing period 
+                            ({subscriptionData.subscription_end 
+                              ? new Date(subscriptionData.subscription_end).toLocaleDateString()
+                              : 'current billing cycle'
+                            }).
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleCancelSubscription}
+                            disabled={cancelLoading}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            {cancelLoading ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                Cancelling...
+                              </div>
+                            ) : (
+                              'Yes, Cancel Subscription'
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </CardContent>
             </Card>
