@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Check, Crown, Shield, Users, Zap, CreditCard, Settings, X, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Check, Crown, Shield, Users, Zap, CreditCard, X, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 const Billing = () => {
@@ -128,29 +128,6 @@ const Billing = () => {
       setLoading(null);
     }
   };
-  const handleManageSubscription = async () => {
-    try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('customer-portal');
-      if (error) throw error;
-
-      // Open customer portal in a new tab
-      window.open(data.url, '_blank');
-      toast({
-        title: "Opening billing portal",
-        description: "You'll be redirected to manage your subscription."
-      });
-    } catch (error) {
-      console.error('Error opening customer portal:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to open billing portal. Please try again."
-      });
-    }
-  };
   const handleCancelSubscription = async () => {
     setCancelLoading(true);
     try {
@@ -230,16 +207,12 @@ const Billing = () => {
                       {subscriptionData.subscription_end ? `Renews on ${new Date(subscriptionData.subscription_end).toLocaleDateString()}` : 'Active subscription'}
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleManageSubscription} className="gap-2 flex-1">
-                      <Settings className="w-4 h-4" />
-                      Manage Subscription
-                    </Button>
+                  <div className="flex justify-end">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" className="gap-2 flex-1">
+                        <Button variant="destructive" className="gap-2">
                           <X className="w-4 h-4" />
-                          Cancel
+                          Cancel Subscription
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
