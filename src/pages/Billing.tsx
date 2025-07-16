@@ -207,10 +207,10 @@ const Billing = () => {
                       {subscriptionData.subscription_end ? `Renews on ${new Date(subscriptionData.subscription_end).toLocaleDateString()}` : 'Active subscription'}
                     </p>
                   </div>
-                  <div className="flex justify-end">
+                  <div className="flex justify-center">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" className="gap-2">
+                        <Button variant="outline" className="gap-2">
                           <X className="w-4 h-4" />
                           Cancel Subscription
                         </Button>
@@ -228,7 +228,7 @@ const Billing = () => {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleCancelSubscription} disabled={cancelLoading} className="bg-destructive hover:bg-destructive/90">
+                          <AlertDialogAction onClick={handleCancelSubscription} disabled={cancelLoading} className="bg-muted hover:bg-muted/80">`
                             {cancelLoading ? <div className="flex items-center gap-2">
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 Cancelling...
