@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Upload, X, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +16,7 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [productDescription, setProductDescription] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -83,6 +85,7 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
       if (blob) {
         const imageUrl = URL.createObjectURL(blob);
         setUploadedImage(imageUrl);
+        setProductDescription(''); // Reset description for new photo
         stopCamera();
       }
     }, 'image/jpeg', 0.9);
@@ -99,7 +102,7 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
         .then(res => res.blob())
         .then(blob => {
           const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
-          analyzeImage(file);
+          analyzeImage(file, productDescription);
         });
     }
   };
@@ -121,7 +124,7 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
     }
   }, [stream]);
 
-  const analyzeImage = async (file: File) => {
+  const analyzeImage = async (file: File, userDescription?: string) => {
     if (!user?.id) {
       toast({
         variant: "destructive",
@@ -183,7 +186,8 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
         const { data, error } = await supabase.functions.invoke('analyze-medication', {
           body: { 
             imageData,
-            userId: user.id 
+            userId: user.id,
+            productName: userDescription // Include user's description
           }
         });
 
@@ -294,22 +298,40 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
             )}
           </div>
           {!isAnalyzing && (
-            <div className="flex gap-3 mt-4 justify-center">
-              <Button
-                onClick={handleRetake}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Retake
-              </Button>
-              <Button
-                onClick={handleAnalyze}
-                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
-              >
-                <Camera className="w-4 h-4" />
-                Analyze Photo
-              </Button>
+            <div className="space-y-4 mt-4">
+              <div className="max-w-md mx-auto">
+                <label htmlFor="product-description" className="block text-sm font-medium text-gray-700 mb-2">
+                  What did you take a picture of?
+                </label>
+                <Input
+                  id="product-description"
+                  value={productDescription}
+                  onChange={(e) => setProductDescription(e.target.value)}
+                  placeholder="e.g., Tylenol, vitamin bottle, food package..."
+                  className="w-full"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Describe what's in the photo to help with accurate analysis
+                </p>
+              </div>
+              <div className="flex gap-3 justify-center">
+                <Button
+                  onClick={handleRetake}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Retake
+                </Button>
+                <Button
+                  onClick={handleAnalyze}
+                  className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                  disabled={!productDescription.trim()}
+                >
+                  <Camera className="w-4 h-4" />
+                  Analyze Photo
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -398,7 +420,12 @@ const ScannerInterface = ({ onScanComplete }: { onScanComplete: (result: any) =>
             className="hidden"
             onChange={(e) => {
               if (e.target.files?.[0]) {
-                analyzeImage(e.target.files[0]);
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                  setUploadedImage(event.target?.result as string);
+                  setProductDescription(''); // Reset description for new upload
+                };
+                reader.readAsDataURL(e.target.files[0]);
               }
             }}
           />

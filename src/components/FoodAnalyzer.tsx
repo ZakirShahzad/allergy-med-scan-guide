@@ -34,6 +34,7 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [productDescription, setProductDescription] = useState('');
   const [hasMedications, setHasMedications] = useState(false);
   const [checkingMedications, setCheckingMedications] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -219,9 +220,15 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
         ctx.drawImage(video, 0, 0);
         const imageData = canvas.toDataURL('image/jpeg');
         setCapturedImage(imageData);
+        setProductDescription(''); // Reset description for new photo
         stopCamera();
-        analyzeProduct('photo', imageData);
       }
+    }
+  };
+
+  const handleAnalyzeImage = () => {
+    if (capturedImage && productDescription.trim()) {
+      analyzeProduct('photo', capturedImage, productDescription.trim());
     }
   };
 
@@ -232,7 +239,7 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
       reader.onload = (event) => {
         const imageData = event.target?.result as string;
         setCapturedImage(imageData);
-        analyzeProduct('upload', imageData);
+        setProductDescription(''); // Reset description for new upload
       };
       reader.readAsDataURL(file);
     }
@@ -369,7 +376,7 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
                 </div>
                 <Button onClick={capturePhoto} className="w-full min-h-[56px]" size="lg">
                   <Camera className="w-5 h-5 mr-2" />
-                  Capture & Analyze
+                  Capture Photo
                 </Button>
               </CardContent>
             </Card>
@@ -473,12 +480,34 @@ const FoodAnalyzer = ({ onAnalysisComplete }: FoodAnalyzerProps) => {
           <CardHeader>
             <CardTitle>Captured Image</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <img 
               src={capturedImage} 
               alt="Captured product" 
               className="w-full max-w-md mx-auto rounded-lg border"
             />
+            <div className="space-y-2">
+              <label htmlFor="captured-description" className="block text-sm font-medium text-gray-700">
+                What did you take a picture of?
+              </label>
+              <Input
+                id="captured-description"
+                value={productDescription}
+                onChange={(e) => setProductDescription(e.target.value)}
+                placeholder="e.g., apple, green tea, vitamin C bottle..."
+                className="w-full"
+              />
+              <p className="text-xs text-gray-500">
+                Describe what's in the photo to help with accurate analysis
+              </p>
+            </div>
+            <Button 
+              onClick={handleAnalyzeImage}
+              className="w-full min-h-[48px]"
+              disabled={!productDescription.trim() || loading}
+            >
+              {loading ? 'Analyzing...' : 'Analyze Product'}
+            </Button>
           </CardContent>
         </Card>
       )}
