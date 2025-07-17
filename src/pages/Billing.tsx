@@ -16,8 +16,13 @@ const Billing = () => {
     refreshSubscription
   } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { invokeFunction, loading: functionLoading } = useRateLimitedFunction();
+  const {
+    toast
+  } = useToast();
+  const {
+    invokeFunction,
+    loading: functionLoading
+  } = useRateLimitedFunction();
   const [cancelLoading, setCancelLoading] = useState(false);
 
   // Listen for messages from payment windows
@@ -97,12 +102,15 @@ const Billing = () => {
       navigate('/auth');
       return;
     }
-
     try {
-      const { data, error } = await invokeFunction('create-checkout', {
-        body: { planId }
+      const {
+        data,
+        error
+      } = await invokeFunction('create-checkout', {
+        body: {
+          planId
+        }
       });
-      
       if (error) throw error;
 
       // Open Stripe checkout in a new tab
@@ -120,14 +128,14 @@ const Billing = () => {
       });
     }
   };
-
   const handleCancelSubscription = async () => {
     setCancelLoading(true);
     try {
-      const { data, error } = await invokeFunction('cancel-subscription');
-      
+      const {
+        data,
+        error
+      } = await invokeFunction('cancel-subscription');
       if (error) throw error;
-      
       toast({
         title: "Subscription cancelled",
         description: "Your subscription has been cancelled successfully. Your access to premium features has been removed."
@@ -200,14 +208,7 @@ const Billing = () => {
                     </p>
                   </div>
                   <div className="flex gap-4 justify-center">
-                    <Button 
-                      variant="outline" 
-                      disabled
-                      className="gap-2 opacity-50"
-                    >
-                      <CreditCard className="w-4 h-4" />
-                      Manage Subscription (Temporarily Unavailable)
-                    </Button>
+                    
                     
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
