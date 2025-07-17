@@ -128,6 +128,30 @@ const Billing = () => {
       setLoading(null);
     }
   };
+  const handleManageSubscription = async () => {
+    setLoading('manage');
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      if (error) throw error;
+      
+      // Open Customer Portal in a new tab
+      window.open(data.url, '_blank');
+      toast({
+        title: "Redirecting to customer portal",
+        description: "You'll be redirected to manage your subscription."
+      });
+    } catch (error) {
+      console.error('Error opening customer portal:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to open customer portal. Please try again."
+      });
+    } finally {
+      setLoading(null);
+    }
+  };
+
   const handleCancelSubscription = async () => {
     setCancelLoading(true);
     try {
@@ -207,7 +231,17 @@ const Billing = () => {
                       {subscriptionData.subscription_end ? `Renews on ${new Date(subscriptionData.subscription_end).toLocaleDateString()}` : 'Active subscription'}
                     </p>
                   </div>
-                  <div className="flex justify-center">
+                  <div className="flex gap-4 justify-center">
+                    <Button 
+                      variant="default" 
+                      className="gap-2"
+                      onClick={handleManageSubscription}
+                      disabled={loading === 'manage'}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      {loading === 'manage' ? 'Loading...' : 'Manage Subscription'}
+                    </Button>
+                    
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="outline" className="gap-2">
