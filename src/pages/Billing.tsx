@@ -128,29 +128,6 @@ const Billing = () => {
       setLoading(null);
     }
   };
-  const handleManageSubscription = async () => {
-    setLoading('manage');
-    try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-      if (error) throw error;
-      
-      // Open Customer Portal in a new tab
-      window.open(data.url, '_blank');
-      toast({
-        title: "Redirecting to customer portal",
-        description: "You'll be redirected to manage your subscription."
-      });
-    } catch (error) {
-      console.error('Error opening customer portal:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to open customer portal. Please try again."
-      });
-    } finally {
-      setLoading(null);
-    }
-  };
 
   const handleCancelSubscription = async () => {
     setCancelLoading(true);
@@ -233,13 +210,12 @@ const Billing = () => {
                   </div>
                   <div className="flex gap-4 justify-center">
                     <Button 
-                      variant="default" 
-                      className="gap-2"
-                      onClick={handleManageSubscription}
-                      disabled={loading === 'manage'}
+                      variant="outline" 
+                      disabled
+                      className="gap-2 opacity-50"
                     >
                       <CreditCard className="w-4 h-4" />
-                      {loading === 'manage' ? 'Loading...' : 'Manage Subscription'}
+                      Manage Subscription (Temporarily Unavailable)
                     </Button>
                     
                     <AlertDialog>
