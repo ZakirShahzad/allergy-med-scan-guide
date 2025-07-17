@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { rateLimiter } from '@/utils/rateLimiter';
 
 interface AuthContextType {
   user: User | null;
@@ -88,15 +89,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
     
-    // Rate limiting: only check subscription every 5 minutes (unless forced)
-    const now = Date.now();
-    if (!force && now - lastSubscriptionCheck < SUBSCRIPTION_CHECK_COOLDOWN) {
-      console.log('Subscription check skipped due to rate limiting');
+    // Use rate limiter instead of manual cooldown
+    if (!force && !rateLimiter.canExecute('check-subscription')) {
+      console.log('Subscription check rate limited');
       await fetchSubscriptionData(); // Still fetch local data
       return;
     }
-    
-    setLastSubscriptionCheck(now);
     
     try {
       const { error } = await supabase.functions.invoke('check-subscription');
@@ -128,7 +126,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('Failed to fetch subscription data:', fetchError);
       }
     }
-  }, [fetchSubscriptionData, lastSubscriptionCheck, SUBSCRIPTION_CHECK_COOLDOWN, edgeFunctionDisabled]);
+  }, [fetchSubscriptionData, edgeFunctionDisabled]);
 
   const refreshSubscription = useCallback(async () => {
     // Force refresh - bypass rate limiting for manual refresh
@@ -147,8 +145,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (event === 'SIGNED_IN' && session?.user) {
           // Use a longer delay and check if we really need to call the edge function
           setTimeout(() => {
-            // Only if we don't have recent subscription data
-            if (Date.now() - lastSubscriptionCheck > SUBSCRIPTION_CHECK_COOLDOWN) {
+            // Only if rate limiter allows it
+            if (rateLimiter.canExecute('check-subscription')) {
               checkSubscription();
             }
           }, 2000);

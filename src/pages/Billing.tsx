@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Check, Crown, Shield, Users, Zap, CreditCard, X, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useRateLimitedFunction } from '@/hooks/useRateLimitedFunction';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 const Billing = () => {
   const {
@@ -16,10 +16,8 @@ const Billing = () => {
     refreshSubscription
   } = useAuth();
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
-  const [loading, setLoading] = useState<string | null>(null);
+  const { toast } = useToast();
+  const { invokeFunction, loading: functionLoading } = useRateLimitedFunction();
   const [cancelLoading, setCancelLoading] = useState(false);
 
   // Listen for messages from payment windows
@@ -99,16 +97,12 @@ const Billing = () => {
       navigate('/auth');
       return;
     }
-    setLoading(planId);
+
     try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          planId
-        }
+      const { data, error } = await invokeFunction('create-checkout', {
+        body: { planId }
       });
+      
       if (error) throw error;
 
       // Open Stripe checkout in a new tab
@@ -124,19 +118,16 @@ const Billing = () => {
         title: "Error",
         description: "Failed to create checkout session. Please try again."
       });
-    } finally {
-      setLoading(null);
     }
   };
 
   const handleCancelSubscription = async () => {
     setCancelLoading(true);
     try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('cancel-subscription');
+      const { data, error } = await invokeFunction('cancel-subscription');
+      
       if (error) throw error;
+      
       toast({
         title: "Subscription cancelled",
         description: "Your subscription has been cancelled successfully. Your access to premium features has been removed."
@@ -258,6 +249,7 @@ const Billing = () => {
             {plans.map(plan => {
             const Icon = plan.icon;
             const isCurrentPlan = plan.id === 'free' && !subscriptionData.subscribed || plan.id === 'basic' && subscriptionData.subscribed && subscriptionData.subscription_tier === 'Basic' || plan.id === 'premium' && subscriptionData.subscribed && subscriptionData.subscription_tier === 'Premium';
+            const isLoading = functionLoading === 'create-checkout';
             return <Card key={plan.id} className={`relative ${plan.popular ? 'border-blue-500 border-2 shadow-lg' : ''} ${isCurrentPlan ? 'border-green-500 border-2 bg-green-50' : ''}`}>
                   {plan.badge && !isCurrentPlan && <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <Badge variant="default" className="bg-blue-600 text-white">
@@ -298,8 +290,8 @@ const Billing = () => {
                         Current Plan
                       </Button> : plan.id === 'free' ? <Button variant="outline" className="w-full" disabled>
                         Free Trial
-                      </Button> : <Button onClick={() => handleSubscribe(plan.id)} disabled={loading === plan.id} className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`} variant={plan.popular ? 'default' : 'outline'}>
-                        {loading === plan.id ? <div className="flex items-center gap-2">
+                      </Button> : <Button onClick={() => handleSubscribe(plan.id)} disabled={isLoading} className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`} variant={plan.popular ? 'default' : 'outline'}>
+                        {isLoading ? <div className="flex items-center gap-2">
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                             Processing...
                           </div> : <>
