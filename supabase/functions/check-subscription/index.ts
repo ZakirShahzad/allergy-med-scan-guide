@@ -82,21 +82,17 @@ serve(async (req) => {
       const price = await stripe.prices.retrieve(priceId);
       const amount = price.unit_amount || 0;
       
-      // Match the pricing from create-checkout: basic=999, premium=1999, family=2999
+      // Match the pricing from create-checkout: basic=999, premium=1999
       if (amount === 999) {
         subscriptionTier = "Basic";
       } else if (amount === 1999) {
         subscriptionTier = "Premium";
-      } else if (amount === 2999) {
-        subscriptionTier = "Family";
       } else {
-        // Fallback for any other amounts
+        // Fallback for any other amounts - treat as basic if lower, premium if higher
         if (amount < 1500) {
           subscriptionTier = "Basic";
-        } else if (amount < 2500) {
-          subscriptionTier = "Premium";
         } else {
-          subscriptionTier = "Family";
+          subscriptionTier = "Premium";
         }
       }
       logStep("Determined subscription tier", { priceId, amount, subscriptionTier });

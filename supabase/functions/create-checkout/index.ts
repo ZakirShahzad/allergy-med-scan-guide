@@ -54,11 +54,10 @@ serve(async (req) => {
       logStep("No existing customer found");
     }
 
-    // Define plan pricing
+    // Define plan pricing - only basic and premium to match frontend
     const planPricing = {
       basic: { amount: 999, name: "Basic Plan" },
-      premium: { amount: 1999, name: "Premium Plan" },
-      family: { amount: 2999, name: "Family Plan" }
+      premium: { amount: 1999, name: "Premium Plan" }
     };
 
     const selectedPlan = planPricing[planId as keyof typeof planPricing];

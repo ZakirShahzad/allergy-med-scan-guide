@@ -204,7 +204,11 @@ const Billing = () => {
                   <div>
                     <p className="font-semibold">{subscriptionData.subscription_tier || 'Basic'} Plan</p>
                     <p className="text-sm text-gray-600">
-                      {subscriptionData.subscription_end ? `Renews on ${new Date(subscriptionData.subscription_end).toLocaleDateString()}` : 'Active subscription'}
+                      {subscriptionData.subscription_end ? 
+                        (new Date(subscriptionData.subscription_end) < new Date() ? 
+                          'Subscription expired' : 
+                          `Active until ${new Date(subscriptionData.subscription_end).toLocaleDateString()}`) : 
+                        'Active subscription'}
                     </p>
                   </div>
                   <div className="flex gap-4 justify-center">
@@ -249,7 +253,7 @@ const Billing = () => {
           <div className="grid md:grid-cols-3 gap-8 justify-center">
             {plans.map(plan => {
             const Icon = plan.icon;
-            const isCurrentPlan = plan.id === 'free' && !subscriptionData.subscribed || plan.id === 'basic' && subscriptionData.subscribed && subscriptionData.subscription_tier === 'Basic' || plan.id === 'premium' && subscriptionData.subscribed && subscriptionData.subscription_tier === 'Premium';
+            const isCurrentPlan = plan.id === 'free' && !subscriptionData.subscribed || plan.id === 'basic' && subscriptionData.subscribed && (subscriptionData.subscription_tier === 'Basic' || subscriptionData.subscription_tier === 'Family') || plan.id === 'premium' && subscriptionData.subscribed && subscriptionData.subscription_tier === 'Premium';
             const isLoading = functionLoading === 'create-checkout';
             return <Card key={plan.id} className={`relative ${plan.popular ? 'border-blue-500 border-2 shadow-lg' : ''} ${isCurrentPlan ? 'border-green-500 border-2 bg-green-50' : ''}`}>
                   {plan.badge && !isCurrentPlan && <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
