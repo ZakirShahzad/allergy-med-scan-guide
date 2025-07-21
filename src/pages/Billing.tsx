@@ -68,7 +68,7 @@ const Billing = () => {
     name: 'Free Trial',
     price: 0,
     interval: 'forever',
-    features: ['5 medication scans per month', 'Basic medication analysis', 'Safety warnings and alerts'],
+    features: ['5 scans per month', 'Basic medication analysis', 'Safety warnings and alerts'],
     badge: null,
     popular: false,
     icon: Zap,
@@ -78,7 +78,7 @@ const Billing = () => {
     name: 'Basic',
     price: 9.99,
     interval: 'month',
-    features: ['50 medication scans per month', 'Complete medication analysis', 'Safety warnings and alerts'],
+    features: ['50 scans per month', 'Complete medication analysis', 'Safety warnings and alerts'],
     badge: null,
     popular: false,
     icon: Shield
@@ -87,7 +87,7 @@ const Billing = () => {
     name: 'Premium',
     price: 19.99,
     interval: 'month',
-    features: ['Unlimited medication scans', 'Complete medication analysis', 'Safety warnings and alerts'],
+    features: ['Unlimited scans', 'Complete medication analysis', 'Safety warnings and alerts'],
     badge: 'Most Popular',
     popular: true,
     icon: Crown
