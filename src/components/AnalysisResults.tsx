@@ -115,22 +115,18 @@ const AnalysisResults = ({ result, onNewAnalysis }: AnalysisResultsProps) => {
                   {getInteractionIcon(result.interactionLevel)}
                   <div>
                     <CardTitle className="text-2xl">{result.productName}</CardTitle>
-                    <p className="text-gray-600 flex items-center mt-1">
-                      <Clock className="w-4 h-4 mr-1" />
-                      Analyzed {new Date(result.timestamp).toLocaleString()}
-                    </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-center">
                   {result.compatibilityScore !== null ? (
                     <>
-                      <div className={`text-3xl font-bold px-4 py-2 rounded-lg border ${getScoreColor(result.compatibilityScore)}`}>
+                      <div className={`text-3xl font-bold px-4 py-2 rounded-lg border ${getScoreColor(result.compatibilityScore)} mx-auto`}>
                         {result.compatibilityScore}
                       </div>
                       <p className="text-sm text-gray-600 mt-1">Compatibility Score</p>
                     </>
                   ) : (
-                    <div className="text-3xl font-bold px-4 py-2 rounded-lg border bg-gray-50 text-gray-400">
+                    <div className="text-3xl font-bold px-4 py-2 rounded-lg border bg-gray-50 text-gray-400 mx-auto">
                       N/A
                     </div>
                   )}
