@@ -162,25 +162,6 @@ const AnalysisResults = ({ result, onNewAnalysis }: AnalysisResultsProps) => {
             </Card>
           )}
 
-          {/* Your Medications */}
-          {result.userMedications.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Checked Against Your Medications</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {result.userMedications.map((medication, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      <span className="text-blue-800 font-medium">{medication}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Pros */}
           {result.pros.length > 0 && (
             <Card>
@@ -249,6 +230,25 @@ const AnalysisResults = ({ result, onNewAnalysis }: AnalysisResultsProps) => {
                 <p className="text-sm text-blue-600 mt-4">
                   <strong>Note:</strong> Always consult with your healthcare provider before making changes to your diet or switching products.
                 </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Your Medications */}
+          {result.userMedications.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Checked Against Your Medications</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {result.userMedications.map((medication, index) => (
+                    <div key={index} className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                      <span className="text-blue-800 font-medium">{medication}</span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           )}
