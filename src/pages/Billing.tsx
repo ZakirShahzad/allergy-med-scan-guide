@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Browser } from '@capacitor/browser';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -119,6 +120,14 @@ const Billing = () => {
         title: "Redirecting to checkout",
         description: "You'll be redirected to our secure payment page."
       });
+// added for ios compatability
+      // Open Stripe Checkout in an in-app browser (SFSafariViewController)
+      await Browser.open({
+        url: data.url,
+        presentationStyle: 'fullscreen',
+      });
+
+
     } catch (error) {
       console.error('Error creating checkout:', error);
       toast({
