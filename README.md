@@ -1,73 +1,80 @@
-# Welcome to your Lovable project
+# Flikkt
 
-## Project info
+**Flikkt** is an AI-powered mobile app that helps users avoid dangerous interactions between food products and their current medications or supplements. With a quick barcode scan or product search, Flikkt checks for conflicts and returns a simple 1–100 compatibility score, along with healthier alternatives if needed.
 
-**URL**: https://lovable.dev/projects/24de45c7-db7b-436c-95b7-585299fa559e
+This app is designed for patients, caregivers, pharmacists, and anyone seeking safer, smarter shopping experiences.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🧠 Key Features
 
-**Use Lovable**
+- **AI-Powered Interaction Analysis**  
+  Uses a machine-learning model and a drug–ingredient interaction database to flag potential food-medicine conflicts.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/24de45c7-db7b-436c-95b7-585299fa559e) and start prompting.
+- **Compatibility Scoring**  
+  Each scanned product receives a 1–100 score to indicate safety and compatibility with your current medications.
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Safer Alternatives**  
+  When a scanned item is flagged, Flikkt suggests similar products with fewer or no risks.
 
-**Use your preferred IDE**
+- **Medication & Supplement Manager**  
+  Securely store your current medications and supplements so all future scans are personalized.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- **Free Trial + Subscription Tiers**  
+  Offers 5 free scans per month and unlocks unlimited access via Stripe-powered in-app purchases.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## 📱 Tech Stack
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+| Layer        | Tech Used                                      |
+|--------------|------------------------------------------------|
+| Frontend     | React + TypeScript (via Capacitor)             |
+| Mobile       | CapacitorJS for native iOS/Android builds      |
+| Backend      | Deno serverless functions                      |
+| Auth & DB    | Supabase (Postgres + Auth + Storage)           |
+| AI Engine    | OpenAI GPT-4 for explanation generation        |
+| Payments     | Stripe Billing API                             |
+| Deployment   | Vercel (web) + Xcode / Android Studio (native) |
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+---
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 🚀 Getting Started
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### Prerequisites
+
+- Node.js ≥ 16  
+- Deno ≥ 1.30  
+- Supabase project  
+- OpenAI API key  
+- Stripe secret key (for subscriptions)
+
+### Clone the Project
+
+```bash
+git clone https://github.com/your-username/flikkt.git
+cd flikkt
+
+Setup Environment Variables
+Create a .env file at the root and add:
+
+
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_key
+OPENAI_API_KEY=your_openai_key
+STRIPE_SECRET_KEY=your_stripe_key
+
+
+Install Dependencies
+
+npm install
+Run Dev Server
+
 npm run dev
-```
+Run iOS/Android (Capacitor)
 
-**Edit a file directly in GitHub**
+npx cap sync ios
+npx cap open ios
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/24de45c7-db7b-436c-95b7-585299fa559e) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+npx cap sync android
+npx cap open android
